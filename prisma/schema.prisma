@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum ReservationStatus {
+  PENDING
+  CANCELLED
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  customerName    String
+  phone           String
+  reservationTime DateTime
+  partySize       Int?
+  memo            String?
+  status          ReservationStatus @default(PENDING)
+  reminderSentAt  DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([reservationTime])
+}
