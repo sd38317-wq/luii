@@ -47,8 +47,9 @@ function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="비밀번호"
+          autoComplete="current-password"
           autoFocus
-          className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
+          className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
         />
 
         {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
@@ -56,7 +57,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-orange-500 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+          className="w-full rounded-lg bg-orange-500 py-3 text-base font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50 sm:py-2.5 sm:text-sm"
         >
           {loading ? "로그인 중..." : "로그인"}
         </button>

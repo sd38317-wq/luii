@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizePhone } from "@/lib/phone";
 
 export async function GET() {
   const reservations = await prisma.reservation.findMany({
@@ -29,8 +30,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "예약시간 형식이 올바르지 않습니다." }, { status: 400 });
   }
 
-  const phonePattern = /^01[0-9]-?\d{3,4}-?\d{4}$/;
-  if (!phonePattern.test(phone)) {
+  const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) {
     return NextResponse.json(
       { error: "휴대폰 번호 형식이 올바르지 않습니다. (예: 010-1234-5678)" },
       { status: 400 },
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
   const reservation = await prisma.reservation.create({
     data: {
       customerName,
-      phone,
+      phone: normalizedPhone,
       reservationTime,
       partySize: partySize && !Number.isNaN(partySize) ? partySize : null,
       memo,

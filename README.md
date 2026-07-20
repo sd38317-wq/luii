@@ -53,9 +53,33 @@ npm run dev
 이 앱은 **SQLite 파일 + 1분마다 도는 백그라운드 작업(cron)** 으로 동작합니다. 그래서:
 
 - **Vercel 같은 서버리스 플랫폼에는 그대로 배포할 수 없습니다** (파일시스템이 영구적이지 않고, 서버가 상시 켜져있지 않아 cron이 돌지 않습니다)
-- 대신 **상시 실행되는 서버**가 필요합니다. 예: 사용하지 않는 PC/미니PC, Railway, Render, 저렴한 VPS(Cafe24, AWS Lightsail 등) + `pm2` 같은 프로세스 매니저
-- 배포 시 실행 명령은 `npm run build` 후 `npm run start` 입니다.
+- 대신 **상시 실행되는 서버 + 영구 디스크**가 필요합니다. 무료로 이 조건을 만족하는 [Fly.io](https://fly.io)에 바로 배포할 수 있도록 `Dockerfile`/`fly.toml`을 이미 준비해뒀습니다 (아래 "Fly.io로 배포하기" 참고).
 - 시간대(타임존)는 `Asia/Seoul`로 고정되어 있어, 서버가 어느 지역에 있든 30분 전 계산이 한국 시간 기준으로 정확히 동작합니다.
+
+## Fly.io로 배포하기
+
+1. [fly.io](https://fly.io) 가입 (신용카드 필요할 수 있으나 무료 한도 내에서는 과금되지 않습니다)
+2. `flyctl` CLI 설치: `curl -L https://fly.io/install.sh | sh`
+3. 로그인: `fly auth login` (브라우저 인증) — CLI로 자동화하려면 `fly tokens create deploy`로 배포 토큰을 발급받아 `FLY_API_TOKEN` 환경변수로 사용
+4. 앱 생성 (한 번만): `fly launch --no-deploy` — `fly.toml`의 앱 이름/리전이 이미 채워져 있으니 그대로 쓰거나 원하는 이름으로 바꾸세요. 이 명령이 실제 앱을 Fly 계정에 생성합니다.
+5. 예약 데이터를 저장할 영구 볼륨 생성 (`fly.toml`의 `[[mounts]]`와 이름이 같아야 함):
+   ```bash
+   fly volumes create kidscafe_data --size 1 --region nrt
+   ```
+6. 환경변수(시크릿) 등록:
+   ```bash
+   fly secrets set \
+     ADMIN_PASSWORD="실제_비밀번호" \
+     SESSION_SECRET="랜덤한_긴_문자열" \
+     CAFE_NAME="가게 이름" \
+     SOLAPI_API_KEY="..." \
+     SOLAPI_API_SECRET="..." \
+     SOLAPI_SENDER_NUMBER="0212345678"
+   ```
+7. 배포: `fly deploy`
+8. 배포가 끝나면 `https://<앱이름>.fly.dev` 주소가 생깁니다. 이 주소를 폰 브라우저에서 열고 로그인하면 "홈 화면에 추가"로 앱처럼 쓸 수 있습니다 (iOS: 공유 버튼 > 홈 화면에 추가 / Android Chrome: 메뉴 > 앱 설치).
+
+배포 후 코드를 수정했다면 `fly deploy` 한 번으로 재배포됩니다. 볼륨에 저장된 예약 데이터는 재배포해도 유지됩니다.
 
 ## 리마인더 시간/문구 바꾸기
 
@@ -66,13 +90,17 @@ npm run dev
 
 ```
 server.ts                     # Next.js + node-cron을 함께 띄우는 커스텀 서버
+Dockerfile / docker-entrypoint.sh / fly.toml  # Fly.io 배포용 설정
 src/app/admin/                # 예약 등록/목록 관리자 화면
 src/app/login/                # 관리자 로그인 화면
 src/app/api/reservations/     # 예약 CRUD API
 src/app/api/login|logout/     # 로그인/로그아웃 API
+src/app/manifest.ts           # PWA 매니페스트 (홈 화면 추가용)
+src/app/icon.tsx, apple-icon.tsx, icon-192/, icon-512/  # 앱 아이콘 (자동 생성)
 src/lib/prisma.ts             # Prisma 클라이언트
 src/lib/sms.ts                # 솔라피 SMS 발송
 src/lib/reminder.ts           # 30분 전 알림 대상 조회 및 발송 로직
+src/lib/phone.ts              # 휴대폰 번호 정규화(하이픈 유무 상관없이 처리)
 src/proxy.ts                  # 로그인 여부 확인 미들웨어(관리자 페이지/API 보호)
 prisma/schema.prisma           # 예약(Reservation) 테이블 정의
 ```

@@ -1,0 +1,26 @@
+# fly.toml app configuration file
+# app 이름은 실제 배포 시 `flyctl launch`/`flyctl apps create`로 정합니다 (여기 값은 placeholder).
+app = "kidscafe-reservation-sms"
+primary_region = "nrt"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  DATABASE_PATH = "/data/prod.db"
+
+[[mounts]]
+  source = "kidscafe_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

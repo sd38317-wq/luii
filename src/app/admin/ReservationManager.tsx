@@ -159,37 +159,41 @@ export default function ReservationManager() {
           <input
             required
             placeholder="고객명 *"
+            autoComplete="name"
             value={form.customerName}
             onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
+            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             required
             placeholder="연락처 * (010-1234-5678)"
+            inputMode="tel"
+            autoComplete="tel"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
+            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             required
             type="datetime-local"
             value={form.reservationTime}
             onChange={(e) => setForm({ ...form, reservationTime: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
+            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             type="number"
+            inputMode="numeric"
             min={1}
             placeholder="인원수 (선택)"
             value={form.partySize}
             onChange={(e) => setForm({ ...form, partySize: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
+            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             placeholder="메모 (선택)"
             value={form.memo}
             onChange={(e) => setForm({ ...form, memo: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none sm:col-span-2"
+            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm sm:col-span-2"
           />
 
           {error && <p className="col-span-full text-sm text-red-500">{error}</p>}
@@ -197,7 +201,7 @@ export default function ReservationManager() {
           <button
             type="submit"
             disabled={submitting}
-            className="col-span-full rounded-lg bg-orange-500 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50"
+            className="col-span-full rounded-lg bg-orange-500 py-3 text-base font-semibold text-white transition hover:bg-orange-600 disabled:opacity-50 sm:py-2.5 sm:text-sm"
           >
             {submitting ? "등록 중..." : "예약 등록"}
           </button>
@@ -229,13 +233,13 @@ export default function ReservationManager() {
                 <div className="flex gap-2 text-sm">
                   <button
                     onClick={() => handleCancel(r.id)}
-                    className="rounded-lg border border-gray-300 px-3 py-1.5 text-gray-600 hover:bg-gray-50"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50 sm:flex-none sm:py-1.5"
                   >
                     취소
                   </button>
                   <button
                     onClick={() => handleDelete(r.id)}
-                    className="rounded-lg border border-red-200 px-3 py-1.5 text-red-500 hover:bg-red-50"
+                    className="flex-1 rounded-lg border border-red-200 px-3 py-2 text-red-500 hover:bg-red-50 sm:flex-none sm:py-1.5"
                   >
                     삭제
                   </button>
@@ -252,7 +256,7 @@ export default function ReservationManager() {
               {others.map((r) => (
                 <li
                   key={r.id}
-                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-white/60 p-4 text-sm text-gray-500"
+                  className="flex flex-col gap-2 rounded-xl border border-gray-100 bg-white/60 p-4 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <span className="font-medium text-gray-700">{r.customerName}</span>{" "}

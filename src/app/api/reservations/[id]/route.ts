@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { normalizePhone } from "@/lib/phone";
 
 export async function PATCH(
   req: NextRequest,
@@ -15,7 +16,16 @@ export async function PATCH(
   const data: Record<string, unknown> = {};
 
   if (body.customerName !== undefined) data.customerName = String(body.customerName).trim();
-  if (body.phone !== undefined) data.phone = String(body.phone).trim();
+  if (body.phone !== undefined) {
+    const normalizedPhone = normalizePhone(String(body.phone));
+    if (!normalizedPhone) {
+      return NextResponse.json(
+        { error: "휴대폰 번호 형식이 올바르지 않습니다. (예: 010-1234-5678)" },
+        { status: 400 },
+      );
+    }
+    data.phone = normalizedPhone;
+  }
   if (body.memo !== undefined) data.memo = body.memo ? String(body.memo).trim() : null;
   if (body.partySize !== undefined) {
     data.partySize = body.partySize ? Number(body.partySize) : null;
