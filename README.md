@@ -34,8 +34,13 @@ npm run dev
 | `ADMIN_PASSWORD` | 관리자 페이지 로그인 비밀번호 |
 | `SESSION_SECRET` | 로그인 세션에 쓰이는 임의의 긴 문자열 (아무 랜덤 문자열이면 됩니다) |
 | `CAFE_NAME` | 문자에 표시될 가게 이름 |
+| `CAFE_ADDRESS` (선택) | 오시는 길 안내 문구, 문자에 자동으로 추가됨 |
+| `CAFE_PARKING_INFO` (선택) | 주차 안내 문구 |
+| `CAFE_RULES` (선택) | 이용 수칙 안내 문구 (실내화/양말 착용, 보호자 동반 등) |
 | `SOLAPI_API_KEY` / `SOLAPI_API_SECRET` | 솔라피 콘솔 > API Key 관리에서 발급 |
 | `SOLAPI_SENDER_NUMBER` | 문자를 보낼 발신번호 |
+
+`CAFE_ADDRESS`/`CAFE_PARKING_INFO`/`CAFE_RULES`는 값을 채워두면 예약 안내 문자에 줄이 자동으로 추가되고, 비워두면 해당 줄이 빠집니다. 문구가 길어지면 SMS(단문, 90바이트 제한) 대신 LMS(장문)로 자동 전환되어 발송되며, LMS는 건당 비용이 조금 더 나갑니다 (앱이 바이트 수를 계산해서 자동으로 판단합니다).
 
 서버를 켜면 `http://localhost:3000` 에서 로그인 화면이 뜹니다.
 
@@ -72,10 +77,14 @@ npm run dev
      ADMIN_PASSWORD="실제_비밀번호" \
      SESSION_SECRET="랜덤한_긴_문자열" \
      CAFE_NAME="가게 이름" \
+     CAFE_ADDRESS="오시는 길 안내" \
+     CAFE_PARKING_INFO="주차 안내" \
+     CAFE_RULES="이용 수칙 안내" \
      SOLAPI_API_KEY="..." \
      SOLAPI_API_SECRET="..." \
      SOLAPI_SENDER_NUMBER="0212345678"
    ```
+   (`CAFE_ADDRESS`/`CAFE_PARKING_INFO`/`CAFE_RULES`, 솔라피 관련 값은 나중에 준비되면 `fly secrets set` 명령으로 언제든 추가/변경할 수 있습니다)
 7. 배포: `fly deploy`
 8. 배포가 끝나면 `https://<앱이름>.fly.dev` 주소가 생깁니다. 이 주소를 폰 브라우저에서 열고 로그인하면 "홈 화면에 추가"로 앱처럼 쓸 수 있습니다 (iOS: 공유 버튼 > 홈 화면에 추가 / Android Chrome: 메뉴 > 앱 설치).
 

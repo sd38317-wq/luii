@@ -18,6 +18,9 @@ export async function runReminderCheck(): Promise<number> {
   });
 
   const cafeName = process.env.CAFE_NAME || "키즈카페";
+  const address = process.env.CAFE_ADDRESS || null;
+  const parkingInfo = process.env.CAFE_PARKING_INFO || null;
+  const rules = process.env.CAFE_RULES || null;
 
   for (const reservation of due) {
     const message = buildReminderMessage({
@@ -25,9 +28,12 @@ export async function runReminderCheck(): Promise<number> {
       customerName: reservation.customerName,
       reservationTime: reservation.reservationTime,
       partySize: reservation.partySize,
+      address,
+      parkingInfo,
+      rules,
     });
 
-    const result = await sendSms(reservation.phone, message);
+    const result = await sendSms(reservation.phone, message, `[${cafeName}] 예약 안내`);
 
     if (result.success) {
       await prisma.reservation.update({

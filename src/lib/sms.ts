@@ -22,7 +22,19 @@ export interface SendSmsResult {
   error?: string;
 }
 
-export async function sendSms(to: string, text: string): Promise<SendSmsResult> {
+// SMS(단문)는 90바이트가 넘어가면 전송이 거부되거나 잘릴 수 있어, 그 이상이면 LMS(장문)로 자동 전환한다.
+// 한글/특수문자는 2바이트, 영문/숫자/공백은 1바이트로 계산하는 통신사 관행을 따른다.
+const SMS_BYTE_LIMIT = 90;
+
+function estimateByteLength(text: string): number {
+  let bytes = 0;
+  for (const char of text) {
+    bytes += char.charCodeAt(0) > 127 ? 2 : 1;
+  }
+  return bytes;
+}
+
+export async function sendSms(to: string, text: string, subject?: string): Promise<SendSmsResult> {
   const apiKey = process.env.SOLAPI_API_KEY;
   const apiSecret = process.env.SOLAPI_API_SECRET;
   const from = process.env.SOLAPI_SENDER_NUMBER;
@@ -33,6 +45,8 @@ export async function sendSms(to: string, text: string): Promise<SendSmsResult> 
       error: "SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER_NUMBER 환경변수가 설정되지 않았습니다.",
     };
   }
+
+  const isLong = estimateByteLength(text) > SMS_BYTE_LIMIT;
 
   try {
     const res = await fetch(SOLAPI_ENDPOINT, {
@@ -46,6 +60,8 @@ export async function sendSms(to: string, text: string): Promise<SendSmsResult> 
           to: normalizePhone(to),
           from: normalizePhone(from),
           text,
+          type: isLong ? "LMS" : "SMS",
+          ...(isLong ? { subject: subject ?? "예약 안내" } : {}),
         },
       }),
     });
@@ -66,15 +82,27 @@ export function buildReminderMessage(params: {
   customerName: string;
   reservationTime: Date;
   partySize?: number | null;
+  address?: string | null;
+  parkingInfo?: string | null;
+  rules?: string | null;
 }): string {
-  const { cafeName, customerName, reservationTime, partySize } = params;
+  const { cafeName, customerName, reservationTime, partySize, address, parkingInfo, rules } = params;
   const time = reservationTime.toLocaleTimeString("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
 
-  const partyLine = partySize ? `\n인원: ${partySize}명` : "";
+  const lines = [
+    `[${cafeName}] ${customerName}님, 예약하신 시간이 30분 앞으로 다가왔습니다!`,
+    `예약시간: ${time}${partySize ? ` / 인원: ${partySize}명` : ""}`,
+  ];
 
-  return `[${cafeName}] ${customerName}님, 예약하신 시간이 30분 앞으로 다가왔습니다!\n예약시간: ${time}${partyLine}\n안전하고 즐거운 시간 보내세요 :)`;
+  if (address) lines.push(`오시는 길: ${address}`);
+  if (parkingInfo) lines.push(`주차 안내: ${parkingInfo}`);
+  if (rules) lines.push(`이용 안내: ${rules}`);
+
+  lines.push("안전하고 즐거운 시간 보내세요 :)");
+
+  return lines.join("\n");
 }
