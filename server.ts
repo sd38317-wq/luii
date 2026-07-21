@@ -8,23 +8,29 @@ const port = Number(process.env.PORT) || 3000;
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
-  createServer((req, res) => {
-    handle(req, res);
-  }).listen(port, () => {
-    console.log(`> Ready on http://localhost:${port}`);
-  });
+app
+  .prepare()
+  .then(() => {
+    createServer((req, res) => {
+      handle(req, res);
+    }).listen(port, () => {
+      console.log(`> Ready on http://localhost:${port}`);
+    });
 
-  cron.schedule("* * * * *", async () => {
-    try {
-      const sentCount = await runReminderCheck();
-      if (sentCount > 0) {
-        console.log(`[cron] reminder check sent ${sentCount} message(s)`);
+    cron.schedule("* * * * *", async () => {
+      try {
+        const sentCount = await runReminderCheck();
+        if (sentCount > 0) {
+          console.log(`[cron] reminder check sent ${sentCount} message(s)`);
+        }
+      } catch (err) {
+        console.error("[cron] reminder check failed:", err);
       }
-    } catch (err) {
-      console.error("[cron] reminder check failed:", err);
-    }
-  });
+    });
 
-  console.log("[cron] 30분 전 예약 알림 스케줄러 시작 (1분마다 확인)");
-});
+    console.log("[cron] 30분 전 예약 알림 스케줄러 시작 (1분마다 확인)");
+  })
+  .catch((err) => {
+    console.error("[server] failed to prepare Next.js app:", err);
+    process.exit(1);
+  });
