@@ -162,7 +162,7 @@ export default function ReservationManager() {
             autoComplete="name"
             value={form.customerName}
             onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             required
@@ -171,14 +171,14 @@ export default function ReservationManager() {
             autoComplete="tel"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             required
             type="datetime-local"
             value={form.reservationTime}
             onChange={(e) => setForm({ ...form, reservationTime: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             type="number"
@@ -187,13 +187,13 @@ export default function ReservationManager() {
             placeholder="인원수 (선택)"
             value={form.partySize}
             onChange={(e) => setForm({ ...form, partySize: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <input
             placeholder="메모 (선택)"
             value={form.memo}
             onChange={(e) => setForm({ ...form, memo: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm sm:col-span-2"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm sm:col-span-2"
           />
 
           {error && <p className="col-span-full text-sm text-red-500">{error}</p>}

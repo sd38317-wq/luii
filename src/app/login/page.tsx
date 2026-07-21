@@ -49,7 +49,7 @@ function LoginForm() {
           placeholder="비밀번호"
           autoComplete="current-password"
           autoFocus
-          className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-base focus:border-orange-400 focus:outline-none sm:text-sm"
+          className="mb-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
         />
 
         {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
