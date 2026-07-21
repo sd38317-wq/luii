@@ -13,3 +13,9 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
+
+// WAL mode avoids the exclusive-lock fsync stalls of the default rollback journal,
+// which can otherwise block the whole (single-threaded, synchronous-driver) process.
+prisma.$executeRawUnsafe("PRAGMA journal_mode = WAL;").catch((err) => {
+  console.error("[prisma] failed to enable WAL mode:", err);
+});
