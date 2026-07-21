@@ -1,26 +1,29 @@
-# fly.toml app configuration file
-# app 이름은 실제 배포 시 `flyctl launch`/`flyctl apps create`로 정합니다 (여기 값은 placeholder).
-app = "kidscafe-reservation-sms"
-primary_region = "nrt"
+# fly.toml app configuration file generated for luii on 2026-07-21T01:29:55Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'luii'
+primary_region = 'nrt'
 
 [build]
 
 [env]
-  NODE_ENV = "production"
-  DATABASE_PATH = "/data/prod.db"
+  DATABASE_PATH = '/data/prod.db'
+  NODE_ENV = 'production'
 
 [[mounts]]
-  source = "kidscafe_data"
-  destination = "/data"
+  source = 'kidscafe_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
-  processes = ["app"]
+  processes = ['app']
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
