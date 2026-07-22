@@ -114,13 +114,18 @@ export function buildFollowUpMessage(params: {
 }): string {
   const { cafeName, customerName, reviewLink } = params;
 
-  const sections = [`[${cafeName}] ${customerName}님, 오늘 이용해 주셔서 감사합니다!`];
+  const sections = [
+    `[${cafeName}] ${customerName}님, 오늘 저희 공간을 찾아주셔서 진심으로 감사드립니다.`,
+    "아이와 즐거운 시간 보내셨길 바라며, 혹시 불편하신 점은 없으셨는지 궁금합니다.",
+  ];
 
   if (reviewLink) {
-    sections.push(`소중한 리뷰 한 줄 남겨주시면 저희에게 큰 힘이 됩니다 :)\n${reviewLink}`);
-  } else {
-    sections.push("다음에 또 즐거운 시간으로 찾아뵙겠습니다 :)");
+    sections.push(
+      `이용하시면서 좋았던 점을 리뷰로 남겨주시면 저희에게 큰 힘이 되고, 다음에 오실 분들께도 큰 도움이 됩니다 :)\n${reviewLink}`,
+    );
   }
+
+  sections.push("다음에도 편안하고 즐거운 공간으로 또 찾아뵐게요. 감사합니다!");
 
   return sections.join("\n\n");
 }
