@@ -10,6 +10,10 @@ const DEFAULT_CHECKOUT_TIME = "11:59";
 const CHECKOUT_NOTICE_LEAD_MINUTES = 10; // 퇴실(departureTime) 10분 전
 const CHECKOUT_NOTICE_FALLBACK_DELAY_MINUTES = 60; // 퇴실 시간을 안 적었을 때 대체값: 예약 시작 시각 + 1시간
 
+// 발송 시점이 이만큼 지나버린 예약(기록용으로 등록한 과거 예약 등)은 고객에게
+// 뒤늦은 문자가 가지 않도록 발송을 건너뛰고, 발송 완료로 도장만 찍어둔다.
+const MAX_LATE_MS = 48 * 60 * 60_000;
+
 // 한국(Asia/Seoul)은 서머타임이 없는 고정 UTC+9라, 예약 시각을 한국 날짜로 환산한 뒤
 // 그 날짜 기준으로 daysAfter일 뒤 timeStr 시각의 UTC 순간을 계산할 수 있다.
 function computeCheckoutTime(reservationTime: Date, daysAfter: number, timeStr: string): Date {
@@ -104,6 +108,17 @@ export async function runFollowUpCheck(): Promise<number> {
     const checkoutAt = computeCheckoutTime(reservation.reservationTime, checkoutDaysAfter, checkoutTime);
     if (checkoutAt > now) continue;
 
+    if (now.getTime() - checkoutAt.getTime() > MAX_LATE_MS) {
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { followUpSentAt: new Date() },
+      });
+      console.log(
+        `[followup] skipped (48h past due) for ${reservation.customerName} (${reservation.phone})`,
+      );
+      continue;
+    }
+
     const message = buildFollowUpMessage({
       cafeName,
       customerName: reservation.customerName,
@@ -156,6 +171,17 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
           reservation.reservationTime.getTime() + CHECKOUT_NOTICE_FALLBACK_DELAY_MINUTES * 60_000,
         );
     if (triggerAt > now) continue;
+
+    if (now.getTime() - triggerAt.getTime() > MAX_LATE_MS) {
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { checkoutNoticeSentAt: new Date() },
+      });
+      console.log(
+        `[checkout-notice] skipped (48h past due) for ${reservation.customerName} (${reservation.phone})`,
+      );
+      continue;
+    }
 
     const message = buildCheckoutNoticeMessage({
       cafeName,
