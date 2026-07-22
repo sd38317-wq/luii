@@ -206,7 +206,12 @@ export default function ReservationManager() {
   const others = reservations.filter((r) => r.status !== "PENDING");
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
+    <div className="relative isolate min-h-screen bg-gray-50 px-4 py-8">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-center bg-no-repeat opacity-[0.07]"
+        style={{ backgroundImage: "url(/barun-logo-bg.png)", backgroundSize: "min(60vw, 480px)" }}
+      />
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900">바른프라이빗키즈룸 _ 괴정점 예약관리</h1>
