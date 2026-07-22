@@ -26,7 +26,12 @@ function to24Hour(ampm: string, hour12: number): number {
 }
 
 // 네이버 플레이스 예약 상세 화면의 고정 레이아웃(예약자/전화번호/이용일시 라벨)을 정규식으로 파싱한다.
-function extractFields(text: string): ExtractedReservation | null {
+function extractFields(fullText: string): ExtractedReservation | null {
+  // 캡처에 예약 여러 건이 걸쳐 보일 때, 첫 "예약자" 라벨 이전 텍스트(이전 예약의 꼬리)를
+  // 잘라내 이름/전화번호/일시가 서로 다른 예약에서 섞여 나오는 것을 막는다.
+  const labelIndex = fullText.indexOf("예약자");
+  const text = labelIndex >= 0 ? fullText.slice(labelIndex) : fullText;
+
   const nameMatch = text.match(/예약자\s*[\r\n]*\s*([가-힣]{2,10})/);
   const phoneMatch = text.match(/(01\d)[-.\s]?(\d{3,4})[-.\s]?(\d{4})/);
   const dateMatch = text.match(/(\d{4})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})\s*\./);
