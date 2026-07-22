@@ -136,3 +136,28 @@ export function buildFollowUpMessage(params: {
 
   return sections.join("\n\n");
 }
+
+export function buildCheckoutNoticeMessage(params: {
+  cafeName: string;
+  customerName: string;
+  giftEventContact?: string | null;
+}): string {
+  const { cafeName, customerName, giftEventContact } = params;
+
+  const sections = [`[${cafeName}] ${customerName}님, 즐거운 시간 보내고 계신가요?`];
+
+  if (giftEventContact) {
+    sections.push(
+      `이용을 마치고 퇴실하실 때, 정돈 완료 사진을 ${giftEventContact}로 보내주시면 확인할게요.`,
+    );
+    sections.push(
+      `1층 세븐일레븐을 이용하셨다면, 영수증 사진과 계좌번호를 함께 ${giftEventContact}로 보내주세요. 이용하신 요금의 10%를 환급해드립니다!`,
+    );
+  }
+
+  sections.push(
+    "내일 리뷰 작성 링크가 담긴 문자가 도착할 예정이에요. 그때 리뷰를 남겨주시면 배민 상품권 1만원권을 드리니, 남기고 싶은 사진이 있다면 잊지 말고 찍어두세요 :)",
+  );
+
+  return sections.join("\n\n");
+}

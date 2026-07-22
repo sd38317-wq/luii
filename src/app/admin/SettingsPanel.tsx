@@ -144,14 +144,14 @@ export default function SettingsPanel() {
           />
 
           <input
-            placeholder="리뷰 인증 받을 연락처 (예: 010-0000-0000, 비워두면 상품권 안내 문구 빠짐)"
+            placeholder="인증/환급 받을 연락처 (예: 010-0000-0000, 비워두면 관련 안내 문구 빠짐)"
             value={settings.giftEventContact ?? ""}
             onChange={(e) => setSettings({ ...settings, giftEventContact: e.target.value })}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
           <p className="-mt-2 text-xs text-gray-400">
-            리뷰 캡처를 이 연락처로 보내주면 배민 상품권 1만원권을 드린다는 안내가 문자에 추가됩니다. 지급은
-            자동이 아니라 사장님이 직접 확인 후 보내주셔야 해요.
+            이 연락처로 퇴실 정돈 사진, 세븐일레븐 영수증+계좌번호, 리뷰 캡처를 받습니다. 확인 후 환급/상품권
+            지급은 사장님이 직접 해주셔야 해요 (자동 아님).
           </p>
 
           <div className="flex items-center gap-3">

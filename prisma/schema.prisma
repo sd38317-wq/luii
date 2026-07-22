@@ -18,17 +18,18 @@ enum ReservationStatus {
 }
 
 model Reservation {
-  id              String            @id @default(cuid())
-  customerName    String
-  phone           String
-  reservationTime DateTime
-  partySize       Int?
-  memo            String?
-  status          ReservationStatus @default(PENDING)
-  reminderSentAt  DateTime?
-  followUpSentAt  DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id                   String            @id @default(cuid())
+  customerName         String
+  phone                String
+  reservationTime      DateTime
+  partySize            Int?
+  memo                 String?
+  status               ReservationStatus @default(PENDING)
+  reminderSentAt       DateTime?
+  followUpSentAt       DateTime?
+  checkoutNoticeSentAt DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   @@index([reservationTime])
 }

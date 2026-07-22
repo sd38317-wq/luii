@@ -1,11 +1,13 @@
 import { prisma } from "./prisma";
-import { sendSms, buildReminderMessage, buildFollowUpMessage } from "./sms";
+import { sendSms, buildReminderMessage, buildFollowUpMessage, buildCheckoutNoticeMessage } from "./sms";
 
 const REMINDER_MINUTES = 30;
 const GRACE_MINUTES = 5;
 
 const DEFAULT_CHECKOUT_DAYS_AFTER = 1;
 const DEFAULT_CHECKOUT_TIME = "11:59";
+
+const CHECKOUT_NOTICE_DELAY_MINUTES = 60; // 예약 시작 시각 + 1시간
 
 // 한국(Asia/Seoul)은 서머타임이 없는 고정 UTC+9라, 예약 시각을 한국 날짜로 환산한 뒤
 // 그 날짜 기준으로 daysAfter일 뒤 timeStr 시각의 UTC 순간을 계산할 수 있다.
@@ -119,6 +121,54 @@ export async function runFollowUpCheck(): Promise<number> {
     } else {
       console.error(
         `[followup] failed for ${reservation.customerName} (${reservation.phone}): ${result.error}`,
+      );
+    }
+  }
+
+  return sentCount;
+}
+
+export async function runCheckoutNoticeCheck(): Promise<number> {
+  const now = new Date();
+
+  const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
+  const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
+  const giftEventContact = settings?.giftEventContact || null;
+
+  const candidates = await prisma.reservation.findMany({
+    where: {
+      status: "PENDING",
+      checkoutNoticeSentAt: null,
+      reservationTime: { lte: now },
+    },
+  });
+
+  let sentCount = 0;
+
+  for (const reservation of candidates) {
+    const triggerAt = new Date(
+      reservation.reservationTime.getTime() + CHECKOUT_NOTICE_DELAY_MINUTES * 60_000,
+    );
+    if (triggerAt > now) continue;
+
+    const message = buildCheckoutNoticeMessage({
+      cafeName,
+      customerName: reservation.customerName,
+      giftEventContact,
+    });
+
+    const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);
+
+    if (result.success) {
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { checkoutNoticeSentAt: new Date() },
+      });
+      sentCount++;
+      console.log(`[checkout-notice] sent to ${reservation.customerName} (${reservation.phone})`);
+    } else {
+      console.error(
+        `[checkout-notice] failed for ${reservation.customerName} (${reservation.phone}): ${result.error}`,
       );
     }
   }
