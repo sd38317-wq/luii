@@ -17,10 +17,12 @@ export async function runReminderCheck(): Promise<number> {
     },
   });
 
-  const cafeName = process.env.CAFE_NAME || "키즈카페";
-  const address = process.env.CAFE_ADDRESS || null;
-  const parkingInfo = process.env.CAFE_PARKING_INFO || null;
-  const rules = process.env.CAFE_RULES || null;
+  const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
+
+  const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
+  const address = settings?.address || process.env.CAFE_ADDRESS || null;
+  const parkingInfo = settings?.parkingInfo || process.env.CAFE_PARKING_INFO || null;
+  const rules = settings?.rules || process.env.CAFE_RULES || null;
 
   for (const reservation of due) {
     const message = buildReminderMessage({

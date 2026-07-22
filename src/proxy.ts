@@ -4,7 +4,8 @@ import { SESSION_COOKIE_NAME, isValidSessionValue } from "@/lib/auth";
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isProtectedPage = pathname.startsWith("/admin");
-  const isProtectedApi = pathname.startsWith("/api/reservations");
+  const isProtectedApi =
+    pathname.startsWith("/api/reservations") || pathname.startsWith("/api/settings");
 
   if (!isProtectedPage && !isProtectedApi) {
     return NextResponse.next();
@@ -27,5 +28,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/reservations/:path*"],
+  matcher: ["/admin/:path*", "/api/reservations/:path*", "/api/settings/:path*"],
 };

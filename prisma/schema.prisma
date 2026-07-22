@@ -31,3 +31,12 @@ model Reservation {
 
   @@index([reservationTime])
 }
+
+model Settings {
+  id          String   @id @default("singleton")
+  cafeName    String?
+  address     String?
+  parkingInfo String?
+  rules       String?
+  updatedAt   DateTime @updatedAt
+}

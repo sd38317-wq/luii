@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import SettingsPanel from "./SettingsPanel";
 
 type Reservation = {
   id: string;
@@ -148,6 +149,8 @@ export default function ReservationManager() {
           </button>
         </div>
 
+        <SettingsPanel />
+
         <form
           onSubmit={handleSubmit}
           className="mb-8 grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:grid-cols-2"
@@ -224,11 +227,11 @@ export default function ReservationManager() {
                     <span className="font-semibold text-gray-900">{r.customerName}</span>
                     <StatusBadge r={r} />
                   </div>
-                  <p className="mt-0.5 text-sm text-gray-500">
+                  <p className="mt-0.5 text-sm text-gray-700">
                     {formatDateTime(r.reservationTime)} · {r.phone}
                     {r.partySize ? ` · ${r.partySize}명` : ""}
                   </p>
-                  {r.memo && <p className="mt-0.5 text-xs text-gray-400">{r.memo}</p>}
+                  {r.memo && <p className="mt-0.5 text-xs text-gray-600">{r.memo}</p>}
                 </div>
                 <div className="flex gap-2 text-sm">
                   <button
