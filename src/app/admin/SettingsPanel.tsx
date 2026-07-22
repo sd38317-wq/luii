@@ -10,6 +10,7 @@ type Settings = {
   checkoutDaysAfter: number | null;
   checkoutTime: string | null;
   reviewLink: string | null;
+  giftEventContact: string | null;
 };
 
 const emptySettings: Settings = {
@@ -20,6 +21,7 @@ const emptySettings: Settings = {
   checkoutDaysAfter: 1,
   checkoutTime: "11:59",
   reviewLink: "",
+  giftEventContact: "",
 };
 
 export default function SettingsPanel() {
@@ -41,6 +43,7 @@ export default function SettingsPanel() {
           checkoutDaysAfter: data.checkoutDaysAfter ?? 1,
           checkoutTime: data.checkoutTime ?? "11:59",
           reviewLink: data.reviewLink ?? "",
+          giftEventContact: data.giftEventContact ?? "",
         }),
       );
   }, [open]);
@@ -139,6 +142,17 @@ export default function SettingsPanel() {
             onChange={(e) => setSettings({ ...settings, reviewLink: e.target.value })}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
+
+          <input
+            placeholder="리뷰 인증 받을 연락처 (예: 010-0000-0000, 비워두면 상품권 안내 문구 빠짐)"
+            value={settings.giftEventContact ?? ""}
+            onChange={(e) => setSettings({ ...settings, giftEventContact: e.target.value })}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+          />
+          <p className="-mt-2 text-xs text-gray-400">
+            리뷰 캡처를 이 연락처로 보내주면 배민 상품권 1만원권을 드린다는 안내가 문자에 추가됩니다. 지급은
+            자동이 아니라 사장님이 직접 확인 후 보내주셔야 해요.
+          </p>
 
           <div className="flex items-center gap-3">
             <button

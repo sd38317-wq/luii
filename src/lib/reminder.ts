@@ -82,6 +82,7 @@ export async function runFollowUpCheck(): Promise<number> {
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const reviewLink = settings?.reviewLink || null;
+  const giftEventContact = settings?.giftEventContact || null;
   const checkoutDaysAfter = settings?.checkoutDaysAfter ?? DEFAULT_CHECKOUT_DAYS_AFTER;
   const checkoutTime = settings?.checkoutTime || DEFAULT_CHECKOUT_TIME;
 
@@ -103,6 +104,7 @@ export async function runFollowUpCheck(): Promise<number> {
       cafeName,
       customerName: reservation.customerName,
       reviewLink,
+      giftEventContact,
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);

@@ -111,8 +111,9 @@ export function buildFollowUpMessage(params: {
   cafeName: string;
   customerName: string;
   reviewLink?: string | null;
+  giftEventContact?: string | null;
 }): string {
-  const { cafeName, customerName, reviewLink } = params;
+  const { cafeName, customerName, reviewLink, giftEventContact } = params;
 
   const sections = [
     `[${cafeName}] ${customerName}님, 오늘 저희 공간을 찾아주셔서 진심으로 감사드립니다.`,
@@ -123,6 +124,12 @@ export function buildFollowUpMessage(params: {
     sections.push(
       `이용하시면서 좋았던 점을 리뷰로 남겨주시면 저희에게 큰 힘이 되고, 다음에 오실 분들께도 큰 도움이 됩니다 :)\n${reviewLink}`,
     );
+
+    if (giftEventContact) {
+      sections.push(
+        `정성껏 남겨주신 리뷰를 캡처해서 ${giftEventContact}로 보내주시면 배민 상품권 1만원권을 보내드려요!`,
+      );
+    }
   }
 
   sections.push("다음에도 편안하고 즐거운 공간으로 또 찾아뵐게요. 감사합니다!");

@@ -15,6 +15,7 @@ export async function GET() {
       checkoutDaysAfter: null,
       checkoutTime: null,
       reviewLink: null,
+      giftEventContact: null,
     },
   );
 }
@@ -41,6 +42,7 @@ export async function PUT(req: NextRequest) {
         : null,
     checkoutTime: /^\d{1,2}:\d{2}$/.test(body.checkoutTime?.trim() ?? "") ? body.checkoutTime.trim() : null,
     reviewLink: body.reviewLink?.trim() || null,
+    giftEventContact: body.giftEventContact?.trim() || null,
   };
 
   const settings = await prisma.settings.upsert({

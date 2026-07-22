@@ -42,5 +42,6 @@ model Settings {
   checkoutDaysAfter Int?
   checkoutTime      String?
   reviewLink        String?
+  giftEventContact  String?
   updatedAt         DateTime @updatedAt
 }
