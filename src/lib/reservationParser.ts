@@ -10,6 +10,8 @@ const ExtractedReservationSchema = z.object({
   day: z.number().int(),
   hour: z.number().int(),
   minute: z.number().int(),
+  endHour: z.number().int().nullable(),
+  endMinute: z.number().int().nullable(),
   partySize: z.number().int().nullable(),
 });
 
@@ -49,7 +51,7 @@ export async function parseReservationImage(
             },
             {
               type: "text",
-              text: "이 이미지는 네이버 플레이스 키즈룸/키즈카페 예약 상세 화면 캡처입니다. 예약자 이름, 전화번호, 이용 시작 일시(한국 시간 기준, 24시간제)를 추출해줘. '이용일시'에 시작~종료 시간이 함께 나오면 시작 시간만 사용해. 화면에 인원수 정보가 없으면 partySize는 null로 해줘.",
+              text: "이 이미지는 네이버 플레이스 키즈룸/키즈카페 예약 상세 화면 캡처입니다. 예약자 이름, 전화번호, 이용 시작 일시(한국 시간 기준, 24시간제)를 추출해줘. '이용일시'에 시작~종료 시간이 함께 나오면(예: 오후 6:00~오후 7:00) 시작 시간(hour/minute)과 종료 시간(endHour/endMinute)을 모두 24시간제로 추출해줘. 종료 시간이 화면에 없으면 endHour/endMinute는 null로 해줘. 화면에 인원수 정보가 없으면 partySize는 null로 해줘.",
             },
           ],
         },

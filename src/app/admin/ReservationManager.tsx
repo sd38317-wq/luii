@@ -21,6 +21,7 @@ type Reservation = {
   customerName: string;
   phone: string;
   reservationTime: string;
+  departureTime: string | null;
   partySize: number | null;
   memo: string | null;
   status: "PENDING" | "CANCELLED";
@@ -32,6 +33,7 @@ const emptyForm = {
   customerName: "",
   phone: "",
   reservationTime: "",
+  departureTime: "",
   partySize: "",
   memo: "",
 };
@@ -46,6 +48,11 @@ function formatDateTime(iso: string) {
     minute: "2-digit",
     hour12: false,
   });
+}
+
+function formatTimeOnly(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function minutesUntil(iso: string) {
@@ -111,6 +118,7 @@ export default function ReservationManager() {
         reservationTime: form.reservationTime
           ? new Date(form.reservationTime).toISOString()
           : "",
+        departureTime: form.departureTime ? new Date(form.departureTime).toISOString() : null,
         partySize: form.partySize || null,
       }),
     });
@@ -156,10 +164,14 @@ export default function ReservationManager() {
       }
 
       const pad = (n: number) => String(n).padStart(2, "0");
+      const hasEndTime = data.endHour != null && data.endMinute != null;
       setForm({
         customerName: data.customerName ?? "",
         phone: data.phone ?? "",
         reservationTime: `${data.year}-${pad(data.month)}-${pad(data.day)}T${pad(data.hour)}:${pad(data.minute)}`,
+        departureTime: hasEndTime
+          ? `${data.year}-${pad(data.month)}-${pad(data.day)}T${pad(data.endHour)}:${pad(data.endMinute)}`
+          : "",
         partySize: data.partySize ? String(data.partySize) : "",
         memo: "",
       });
@@ -245,13 +257,25 @@ export default function ReservationManager() {
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
-          <input
-            required
-            type="datetime-local"
-            value={form.reservationTime}
-            onChange={(e) => setForm({ ...form, reservationTime: e.target.value })}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
-          />
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">이용 시작</label>
+            <input
+              required
+              type="datetime-local"
+              value={form.reservationTime}
+              onChange={(e) => setForm({ ...form, reservationTime: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">퇴실 시간 (선택)</label>
+            <input
+              type="datetime-local"
+              value={form.departureTime}
+              onChange={(e) => setForm({ ...form, departureTime: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+            />
+          </div>
           <input
             type="number"
             inputMode="numeric"
@@ -297,7 +321,8 @@ export default function ReservationManager() {
                     <StatusBadge r={r} />
                   </div>
                   <p className="mt-0.5 text-sm text-gray-700">
-                    {formatDateTime(r.reservationTime)} · {r.phone}
+                    {formatDateTime(r.reservationTime)}
+                    {r.departureTime ? ` ~ ${formatTimeOnly(r.departureTime)}` : ""} · {r.phone}
                     {r.partySize ? ` · ${r.partySize}명` : ""}
                   </p>
                   {r.memo && <p className="mt-0.5 text-xs text-gray-600">{r.memo}</p>}
@@ -332,7 +357,8 @@ export default function ReservationManager() {
                 >
                   <div>
                     <span className="font-medium text-gray-700">{r.customerName}</span>{" "}
-                    · {formatDateTime(r.reservationTime)} · {r.phone}
+                    · {formatDateTime(r.reservationTime)}
+                    {r.departureTime ? ` ~ ${formatTimeOnly(r.departureTime)}` : ""} · {r.phone}
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge r={r} />

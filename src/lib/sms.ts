@@ -1,4 +1,9 @@
 import crypto from "crypto";
+import {
+  DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
+  DEFAULT_FOLLOWUP_TEMPLATE,
+  applyMessageTemplate,
+} from "./messageTemplates";
 
 const SOLAPI_ENDPOINT = "https://api.solapi.com/messages/v4/send";
 
@@ -112,52 +117,29 @@ export function buildFollowUpMessage(params: {
   customerName: string;
   reviewLink?: string | null;
   giftEventContact?: string | null;
+  template?: string | null;
 }): string {
-  const { cafeName, customerName, reviewLink, giftEventContact } = params;
+  const { cafeName, customerName, reviewLink, giftEventContact, template } = params;
 
-  const sections = [
-    `[${cafeName}] ${customerName}님, 오늘 저희 공간을 찾아주셔서 진심으로 감사드립니다.`,
-    "아이와 즐거운 시간 보내셨길 바라며, 혹시 불편하신 점은 없으셨는지 궁금합니다.",
-  ];
-
-  if (reviewLink) {
-    sections.push(
-      `이용하시면서 좋았던 점을 리뷰로 남겨주시면 저희에게 큰 힘이 되고, 다음에 오실 분들께도 큰 도움이 됩니다 :)\n${reviewLink}`,
-    );
-
-    if (giftEventContact) {
-      sections.push(
-        `리뷰와 어제 남겨주신 정돈 사진을 함께 캡처해서 ${giftEventContact}로 보내주시면 배민 상품권 1만원권 또는 1만원 계좌이체 중 원하시는 걸로 보내드려요!`,
-      );
-    }
-  }
-
-  sections.push("다음에도 편안하고 즐거운 공간으로 또 찾아뵐게요. 감사합니다!");
-
-  return sections.join("\n\n");
+  return applyMessageTemplate(template?.trim() || DEFAULT_FOLLOWUP_TEMPLATE, {
+    카페명: cafeName,
+    고객명: customerName,
+    리뷰링크: reviewLink ?? "",
+    연락처: giftEventContact ?? "",
+  });
 }
 
 export function buildCheckoutNoticeMessage(params: {
   cafeName: string;
   customerName: string;
   giftEventContact?: string | null;
+  template?: string | null;
 }): string {
-  const { cafeName, customerName, giftEventContact } = params;
+  const { cafeName, customerName, giftEventContact, template } = params;
 
-  const sections = [
-    `[${cafeName}] ${customerName}님, 이용해주셔서 감사합니다! 슬슬 정리하시고 퇴실 준비 부탁드릴게요.`,
-  ];
-
-  if (giftEventContact) {
-    sections.push(
-      `퇴실 전 정돈하신 모습을 사진으로 남겨주세요. 내일 도착하는 리뷰 문자에 정돈 사진과 리뷰를 함께 보내주시면, 배민 상품권 1만원권 또는 1만원 계좌이체 중 원하시는 걸로 보내드립니다!`,
-    );
-    sections.push(
-      `1층 세븐일레븐을 이용하셨다면, 영수증 사진과 계좌번호를 ${giftEventContact}로 보내주세요. 이용하신 요금의 10%를 환급해드립니다!`,
-    );
-  } else {
-    sections.push("안전하게 귀가하시고, 다음에도 또 즐거운 시간으로 찾아뵐게요 :)");
-  }
-
-  return sections.join("\n\n");
+  return applyMessageTemplate(template?.trim() || DEFAULT_CHECKOUT_NOTICE_TEMPLATE, {
+    카페명: cafeName,
+    고객명: customerName,
+    연락처: giftEventContact ?? "",
+  });
 }

@@ -22,6 +22,7 @@ model Reservation {
   customerName         String
   phone                String
   reservationTime      DateTime
+  departureTime        DateTime?
   partySize            Int?
   memo                 String?
   status               ReservationStatus @default(PENDING)
@@ -35,14 +36,16 @@ model Reservation {
 }
 
 model Settings {
-  id                String   @id @default("singleton")
-  cafeName          String?
-  address           String?
-  parkingInfo       String?
-  rules             String?
-  checkoutDaysAfter Int?
-  checkoutTime      String?
-  reviewLink        String?
-  giftEventContact  String?
-  updatedAt         DateTime @updatedAt
+  id                     String   @id @default("singleton")
+  cafeName               String?
+  address                String?
+  parkingInfo            String?
+  rules                  String?
+  checkoutDaysAfter      Int?
+  checkoutTime           String?
+  reviewLink             String?
+  giftEventContact       String?
+  checkoutNoticeTemplate String?
+  followUpTemplate       String?
+  updatedAt              DateTime @updatedAt
 }

@@ -39,6 +39,19 @@ export async function PATCH(
     // Changing the time re-arms the reminder so it can be sent again for the new slot.
     data.reminderSentAt = null;
   }
+  if (body.departureTime !== undefined) {
+    if (body.departureTime === null || body.departureTime === "") {
+      data.departureTime = null;
+    } else {
+      const t = new Date(body.departureTime);
+      if (Number.isNaN(t.getTime())) {
+        return NextResponse.json({ error: "퇴실시간 형식이 올바르지 않습니다." }, { status: 400 });
+      }
+      data.departureTime = t;
+    }
+    // Changing the departure time re-arms the checkout notice so it can be sent again.
+    data.checkoutNoticeSentAt = null;
+  }
   if (body.status !== undefined) {
     if (body.status !== "PENDING" && body.status !== "CANCELLED") {
       return NextResponse.json({ error: "status 값이 올바르지 않습니다." }, { status: 400 });

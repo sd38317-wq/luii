@@ -7,7 +7,8 @@ const GRACE_MINUTES = 5;
 const DEFAULT_CHECKOUT_DAYS_AFTER = 1;
 const DEFAULT_CHECKOUT_TIME = "11:59";
 
-const CHECKOUT_NOTICE_DELAY_MINUTES = 60; // 예약 시작 시각 + 1시간
+const CHECKOUT_NOTICE_LEAD_MINUTES = 10; // 퇴실(departureTime) 10분 전
+const CHECKOUT_NOTICE_FALLBACK_DELAY_MINUTES = 60; // 퇴실 시간을 안 적었을 때 대체값: 예약 시작 시각 + 1시간
 
 // 한국(Asia/Seoul)은 서머타임이 없는 고정 UTC+9라, 예약 시각을 한국 날짜로 환산한 뒤
 // 그 날짜 기준으로 daysAfter일 뒤 timeStr 시각의 UTC 순간을 계산할 수 있다.
@@ -85,6 +86,7 @@ export async function runFollowUpCheck(): Promise<number> {
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const reviewLink = settings?.reviewLink || null;
   const giftEventContact = settings?.giftEventContact || null;
+  const followUpTemplate = settings?.followUpTemplate || null;
   const checkoutDaysAfter = settings?.checkoutDaysAfter ?? DEFAULT_CHECKOUT_DAYS_AFTER;
   const checkoutTime = settings?.checkoutTime || DEFAULT_CHECKOUT_TIME;
 
@@ -107,6 +109,7 @@ export async function runFollowUpCheck(): Promise<number> {
       customerName: reservation.customerName,
       reviewLink,
       giftEventContact,
+      template: followUpTemplate,
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);
@@ -134,6 +137,7 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const giftEventContact = settings?.giftEventContact || null;
+  const checkoutNoticeTemplate = settings?.checkoutNoticeTemplate || null;
 
   const candidates = await prisma.reservation.findMany({
     where: {
@@ -146,15 +150,18 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
   let sentCount = 0;
 
   for (const reservation of candidates) {
-    const triggerAt = new Date(
-      reservation.reservationTime.getTime() + CHECKOUT_NOTICE_DELAY_MINUTES * 60_000,
-    );
+    const triggerAt = reservation.departureTime
+      ? new Date(reservation.departureTime.getTime() - CHECKOUT_NOTICE_LEAD_MINUTES * 60_000)
+      : new Date(
+          reservation.reservationTime.getTime() + CHECKOUT_NOTICE_FALLBACK_DELAY_MINUTES * 60_000,
+        );
     if (triggerAt > now) continue;
 
     const message = buildCheckoutNoticeMessage({
       cafeName,
       customerName: reservation.customerName,
       giftEventContact,
+      template: checkoutNoticeTemplate,
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);

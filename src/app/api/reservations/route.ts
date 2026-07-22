@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
   const customerName = body?.customerName?.trim();
   const phone = body?.phone?.trim();
   const reservationTimeRaw = body?.reservationTime;
+  const departureTimeRaw = body?.departureTime;
   const partySize = body?.partySize ? Number(body.partySize) : null;
   const memo = body?.memo?.trim() || null;
 
@@ -30,6 +31,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "예약시간 형식이 올바르지 않습니다." }, { status: 400 });
   }
 
+  let departureTime: Date | null = null;
+  if (departureTimeRaw) {
+    departureTime = new Date(departureTimeRaw);
+    if (Number.isNaN(departureTime.getTime())) {
+      return NextResponse.json({ error: "퇴실시간 형식이 올바르지 않습니다." }, { status: 400 });
+    }
+  }
+
   const normalizedPhone = normalizePhone(phone);
   if (!normalizedPhone) {
     return NextResponse.json(
@@ -43,6 +52,7 @@ export async function POST(req: NextRequest) {
       customerName,
       phone: normalizedPhone,
       reservationTime,
+      departureTime,
       partySize: partySize && !Number.isNaN(partySize) ? partySize : null,
       memo,
     },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
+import { DEFAULT_CHECKOUT_NOTICE_TEMPLATE, DEFAULT_FOLLOWUP_TEMPLATE } from "@/lib/messageTemplates";
 
 type Settings = {
   cafeName: string | null;
@@ -11,6 +12,8 @@ type Settings = {
   checkoutTime: string | null;
   reviewLink: string | null;
   giftEventContact: string | null;
+  checkoutNoticeTemplate: string | null;
+  followUpTemplate: string | null;
 };
 
 const emptySettings: Settings = {
@@ -22,6 +25,8 @@ const emptySettings: Settings = {
   checkoutTime: "11:59",
   reviewLink: "",
   giftEventContact: "",
+  checkoutNoticeTemplate: DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
+  followUpTemplate: DEFAULT_FOLLOWUP_TEMPLATE,
 };
 
 export default function SettingsPanel() {
@@ -44,6 +49,8 @@ export default function SettingsPanel() {
           checkoutTime: data.checkoutTime ?? "11:59",
           reviewLink: data.reviewLink ?? "",
           giftEventContact: data.giftEventContact ?? "",
+          checkoutNoticeTemplate: data.checkoutNoticeTemplate ?? DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
+          followUpTemplate: data.followUpTemplate ?? DEFAULT_FOLLOWUP_TEMPLATE,
         }),
       );
   }, [open]);
@@ -107,8 +114,7 @@ export default function SettingsPanel() {
 
           <div className="mt-2 border-t border-gray-100 pt-3">
             <p className="text-xs text-gray-500">
-              이용이 끝나면 감사 인사 + 리뷰 요청 문자를 자동으로 보내드려요. 예약 시각 기준 아래 기준으로 &quot;이용
-              종료&quot;로 판단합니다.
+              마지막 리뷰 요청 문자(③번)는 예약 시각 기준 아래 기준으로 발송됩니다.
             </p>
           </div>
 
@@ -153,6 +159,35 @@ export default function SettingsPanel() {
             이 연락처로 퇴실 정돈 사진, 세븐일레븐 영수증+계좌번호, 리뷰 캡처를 받습니다. 확인 후 환급/상품권
             지급은 사장님이 직접 해주셔야 해요 (자동 아님).
           </p>
+
+          <div className="mt-2 border-t border-gray-100 pt-3">
+            <p className="text-xs text-gray-500">
+              ②번 퇴실 안내 문자는 예약마다 등록한 <strong>퇴실 시간 10분 전</strong>에 나갑니다 (퇴실
+              시간을 안 적으면 이용 시작 1시간 후에 나가요). ②③번 문자 내용은 아래에서 직접 고칠 수 있어요.
+              <br />
+              사용 가능한 자리표시자: <code>{"{고객명}"}</code>, <code>{"{카페명}"}</code>,{" "}
+              <code>{"{연락처}"}</code>
+              {" (③번은 "}
+              <code>{"{리뷰링크}"}</code>
+              {"도 사용 가능)"}
+            </p>
+          </div>
+
+          <textarea
+            placeholder="② 퇴실 안내 문자"
+            rows={6}
+            value={settings.checkoutNoticeTemplate ?? ""}
+            onChange={(e) => setSettings({ ...settings, checkoutNoticeTemplate: e.target.value })}
+            className="col-span-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+          />
+
+          <textarea
+            placeholder="③ 리뷰 요청 문자 (마지막 문자)"
+            rows={8}
+            value={settings.followUpTemplate ?? ""}
+            onChange={(e) => setSettings({ ...settings, followUpTemplate: e.target.value })}
+            className="col-span-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+          />
 
           <div className="flex items-center gap-3">
             <button
