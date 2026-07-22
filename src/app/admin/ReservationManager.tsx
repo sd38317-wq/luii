@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback, FormEvent } from "react";
+import { useEffect, useState, useCallback, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import SettingsPanel from "./SettingsPanel";
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1] ?? "");
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 type Reservation = {
   id: string;
@@ -65,6 +77,8 @@ export default function ReservationManager() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
 
   const fetchReservations = useCallback(async () => {
     const res = await fetch("/api/reservations", { cache: "no-store" });
@@ -113,6 +127,49 @@ export default function ReservationManager() {
     fetchReservations();
   }
 
+  async function handleImageAttach(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setParsing(true);
+    setParseError(null);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch("/api/reservations/parse-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mediaType: file.type }),
+      });
+
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setParseError(data.error ?? "사진에서 정보를 읽지 못했습니다.");
+        return;
+      }
+
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setForm({
+        customerName: data.customerName ?? "",
+        phone: data.phone ?? "",
+        reservationTime: `${data.year}-${pad(data.month)}-${pad(data.day)}T${pad(data.hour)}:${pad(data.minute)}`,
+        partySize: data.partySize ? String(data.partySize) : "",
+        memo: "",
+      });
+    } catch {
+      setParseError("사진 처리 중 오류가 발생했습니다.");
+    } finally {
+      setParsing(false);
+    }
+  }
+
   async function handleCancel(id: string) {
     await fetch(`/api/reservations/${id}`, {
       method: "PATCH",
@@ -158,6 +215,18 @@ export default function ReservationManager() {
           <h2 className="col-span-full text-sm font-semibold text-gray-700">
             네이버 예약 알림 받으면 여기에 등록하세요
           </h2>
+
+          <label className="col-span-full flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-orange-300 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700 hover:bg-orange-100">
+            {parsing ? "사진에서 읽는 중..." : "📷 예약창 캡처로 자동 입력"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={parsing}
+              onChange={handleImageAttach}
+            />
+          </label>
+          {parseError && <p className="col-span-full text-sm text-red-500">{parseError}</p>}
 
           <input
             required
