@@ -1,21 +1,18 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import sharp from "sharp";
+import { createWorker, type Worker } from "tesseract.js";
 
-const ExtractedReservationSchema = z.object({
-  customerName: z.string(),
-  phone: z.string(),
-  year: z.number().int(),
-  month: z.number().int(),
-  day: z.number().int(),
-  hour: z.number().int(),
-  minute: z.number().int(),
-  endHour: z.number().int().nullable(),
-  endMinute: z.number().int().nullable(),
-  partySize: z.number().int().nullable(),
-});
-
-export type ExtractedReservation = z.infer<typeof ExtractedReservationSchema>;
+export interface ExtractedReservation {
+  customerName: string;
+  phone: string;
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  endHour: number | null;
+  endMinute: number | null;
+  partySize: number | null;
+}
 
 export interface ParseImageResult {
   success: boolean;
@@ -23,47 +20,78 @@ export interface ParseImageResult {
   error?: string;
 }
 
-type SupportedMediaType = "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+function to24Hour(ampm: string, hour12: number): number {
+  const h = hour12 % 12;
+  return ampm === "오후" ? h + 12 : h;
+}
 
-export async function parseReservationImage(
-  base64Image: string,
-  mediaType: SupportedMediaType,
-): Promise<ParseImageResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+// 네이버 플레이스 예약 상세 화면의 고정 레이아웃(예약자/전화번호/이용일시 라벨)을 정규식으로 파싱한다.
+function extractFields(text: string): ExtractedReservation | null {
+  const nameMatch = text.match(/예약자\s*[\r\n]*\s*([가-힣]{2,10})/);
+  const phoneMatch = text.match(/(01\d)[-.\s]?(\d{3,4})[-.\s]?(\d{4})/);
+  const dateMatch = text.match(/(\d{4})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})\s*\./);
+  const timeMatch = text.match(
+    /(오전|오후)\s*(\d{1,2})\s*:\s*(\d{2})\s*[~\-]\s*(오전|오후)?\s*(\d{1,2})\s*:\s*(\d{2})/,
+  );
 
-  if (!apiKey) {
-    return { success: false, error: "ANTHROPIC_API_KEY 환경변수가 설정되지 않았습니다." };
+  if (!nameMatch || !phoneMatch || !dateMatch || !timeMatch) return null;
+
+  const startAmPm = timeMatch[1];
+  const endAmPm = timeMatch[4] || startAmPm;
+
+  return {
+    customerName: nameMatch[1],
+    phone: `${phoneMatch[1]}-${phoneMatch[2]}-${phoneMatch[3]}`,
+    year: Number(dateMatch[1]),
+    month: Number(dateMatch[2]),
+    day: Number(dateMatch[3]),
+    hour: to24Hour(startAmPm, Number(timeMatch[2])),
+    minute: Number(timeMatch[3]),
+    endHour: to24Hour(endAmPm, Number(timeMatch[5])),
+    endMinute: Number(timeMatch[6]),
+    partySize: null,
+  };
+}
+
+let workerPromise: Promise<Worker> | null = null;
+
+function getWorker(): Promise<Worker> {
+  if (!workerPromise) {
+    workerPromise = createWorker("kor+eng");
   }
+  return workerPromise;
+}
 
-  const client = new Anthropic({ apiKey });
-
+export async function parseReservationImage(base64Image: string): Promise<ParseImageResult> {
   try {
-    const response = await client.messages.parse({
-      model: "claude-opus-4-8",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "base64", media_type: mediaType, data: base64Image },
-            },
-            {
-              type: "text",
-              text: "이 이미지는 네이버 플레이스 키즈룸/키즈카페 예약 상세 화면 캡처입니다. 예약자 이름, 전화번호, 이용 시작 일시(한국 시간 기준, 24시간제)를 추출해줘. '이용일시'에 시작~종료 시간이 함께 나오면(예: 오후 6:00~오후 7:00) 시작 시간(hour/minute)과 종료 시간(endHour/endMinute)을 모두 24시간제로 추출해줘. 종료 시간이 화면에 없으면 endHour/endMinute는 null로 해줘. 화면에 인원수 정보가 없으면 partySize는 null로 해줘.",
-            },
-          ],
-        },
-      ],
-      output_config: { format: zodOutputFormat(ExtractedReservationSchema) },
-    });
+    const buffer = Buffer.from(base64Image, "base64");
+    const metadata = await sharp(buffer).metadata();
+    const scale = 3;
 
-    if (!response.parsed_output) {
-      return { success: false, error: "이미지에서 예약 정보를 읽지 못했습니다." };
+    // 화질이 낮은 캡처에서도 라벨/숫자를 안정적으로 읽도록 확대 + 흑백 변환 + 대비 보정을 거친다.
+    const preprocessed = await sharp(buffer)
+      .resize({ width: Math.round((metadata.width ?? 800) * scale), kernel: "lanczos3" })
+      .grayscale()
+      .normalise({ lower: 1, upper: 99 })
+      .png()
+      .toBuffer();
+
+    const worker = await getWorker();
+    const {
+      data: { text },
+    } = await worker.recognize(preprocessed);
+
+    const extracted = extractFields(text);
+
+    if (!extracted) {
+      return {
+        success: false,
+        error:
+          "이미지에서 예약 정보를 정확히 읽지 못했어요. 더 밝고 선명하게 찍어 다시 시도하거나 직접 입력해주세요.",
+      };
     }
 
-    return { success: true, data: response.parsed_output };
+    return { success: true, data: extracted };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
