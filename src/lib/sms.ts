@@ -127,7 +127,7 @@ export function buildFollowUpMessage(params: {
 
     if (giftEventContact) {
       sections.push(
-        `정성껏 남겨주신 리뷰를 캡처해서 ${giftEventContact}로 보내주시면 배민 상품권 1만원권 또는 1만원 계좌이체 중 원하시는 걸로 보내드려요!`,
+        `리뷰와 어제 남겨주신 정돈 사진을 함께 캡처해서 ${giftEventContact}로 보내주시면 배민 상품권 1만원권 또는 1만원 계좌이체 중 원하시는 걸로 보내드려요!`,
       );
     }
   }
