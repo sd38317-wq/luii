@@ -93,16 +93,15 @@ export function buildReminderMessage(params: {
     hour12: false,
   });
 
-  const lines = [
-    `[${cafeName}] ${customerName}님, 예약하신 시간이 30분 앞으로 다가왔습니다!`,
-    `예약시간: ${time}${partySize ? ` / 인원: ${partySize}명` : ""}`,
+  const sections = [
+    `[${cafeName}] ${customerName}님, 예약하신 시간이 30분 앞으로 다가왔습니다!\n예약시간: ${time}${partySize ? ` / 인원: ${partySize}명` : ""}`,
   ];
 
-  if (address) lines.push(`오시는 길: ${address}`);
-  if (parkingInfo) lines.push(`주차 안내: ${parkingInfo}`);
-  if (rules) lines.push(`이용 안내: ${rules}`);
+  if (address) sections.push(`오시는 길: ${address}`);
+  if (parkingInfo) sections.push(`주차 안내: ${parkingInfo}`);
+  if (rules) sections.push(`이용 안내: ${rules}`);
 
-  lines.push("안전하고 즐거운 시간 보내세요 :)");
+  sections.push("안전하고 즐거운 시간 보내세요 :)");
 
-  return lines.join("\n");
+  return sections.join("\n\n");
 }
