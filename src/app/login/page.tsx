@@ -39,7 +39,7 @@ function LoginForm() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm"
       >
-        <h1 className="mb-1 text-xl font-bold text-gray-900">키즈카페 예약 관리</h1>
+        <h1 className="mb-1 text-xl font-bold text-gray-900">바른프라이빗키즈룸 _ 괴정점 예약관리</h1>
         <p className="mb-6 text-sm text-gray-500">관리자 비밀번호를 입력하세요.</p>
 
         <input

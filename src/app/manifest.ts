@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "키즈카페 예약 안내 문자",
-    short_name: "예약안내문자",
+    name: "바른프라이빗키즈룸 _ 괴정점 예약관리",
+    short_name: "괴정점 예약관리",
     description: "네이버 예약 30분 전 자동 SMS 안내 발송 관리 도구",
     start_url: "/admin",
     display: "standalone",

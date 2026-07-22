@@ -197,7 +197,7 @@ export default function ReservationManager() {
     <div className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">키즈카페 예약 관리</h1>
+          <h1 className="text-xl font-bold text-gray-900">바른프라이빗키즈룸 _ 괴정점 예약관리</h1>
           <button
             onClick={handleLogout}
             className="text-sm text-gray-500 underline hover:text-gray-700"
