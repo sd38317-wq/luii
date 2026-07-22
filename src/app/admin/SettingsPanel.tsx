@@ -7,6 +7,9 @@ type Settings = {
   address: string | null;
   parkingInfo: string | null;
   rules: string | null;
+  checkoutDaysAfter: number | null;
+  checkoutTime: string | null;
+  reviewLink: string | null;
 };
 
 const emptySettings: Settings = {
@@ -14,6 +17,9 @@ const emptySettings: Settings = {
   address: "",
   parkingInfo: "",
   rules: "",
+  checkoutDaysAfter: 1,
+  checkoutTime: "11:59",
+  reviewLink: "",
 };
 
 export default function SettingsPanel() {
@@ -32,6 +38,9 @@ export default function SettingsPanel() {
           address: data.address ?? "",
           parkingInfo: data.parkingInfo ?? "",
           rules: data.rules ?? "",
+          checkoutDaysAfter: data.checkoutDaysAfter ?? 1,
+          checkoutTime: data.checkoutTime ?? "11:59",
+          reviewLink: data.reviewLink ?? "",
         }),
       );
   }, [open]);
@@ -90,6 +99,44 @@ export default function SettingsPanel() {
             placeholder="이용 안내 (실내화/양말 착용, 보호자 동반 등)"
             value={settings.rules ?? ""}
             onChange={(e) => setSettings({ ...settings, rules: e.target.value })}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+          />
+
+          <div className="mt-2 border-t border-gray-100 pt-3">
+            <p className="text-xs text-gray-500">
+              이용이 끝나면 감사 인사 + 리뷰 요청 문자를 자동으로 보내드려요. 예약 시각 기준 아래 기준으로 &quot;이용
+              종료&quot;로 판단합니다.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="whitespace-nowrap text-sm text-gray-700">예약일 +</span>
+            <input
+              type="number"
+              min={0}
+              placeholder="1"
+              value={settings.checkoutDaysAfter ?? ""}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  checkoutDaysAfter: e.target.value === "" ? null : Number(e.target.value),
+                })
+              }
+              className="w-16 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+            />
+            <span className="whitespace-nowrap text-sm text-gray-700">일 후</span>
+            <input
+              type="time"
+              value={settings.checkoutTime ?? ""}
+              onChange={(e) => setSettings({ ...settings, checkoutTime: e.target.value })}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+            />
+          </div>
+
+          <input
+            placeholder="리뷰 작성 링크 (네이버 플레이스 리뷰 URL, 선택)"
+            value={settings.reviewLink ?? ""}
+            onChange={(e) => setSettings({ ...settings, reviewLink: e.target.value })}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
           />
 

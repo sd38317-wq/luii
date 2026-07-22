@@ -26,6 +26,7 @@ model Reservation {
   memo            String?
   status          ReservationStatus @default(PENDING)
   reminderSentAt  DateTime?
+  followUpSentAt  DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
@@ -33,10 +34,13 @@ model Reservation {
 }
 
 model Settings {
-  id          String   @id @default("singleton")
-  cafeName    String?
-  address     String?
-  parkingInfo String?
-  rules       String?
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default("singleton")
+  cafeName          String?
+  address           String?
+  parkingInfo       String?
+  rules             String?
+  checkoutDaysAfter Int?
+  checkoutTime      String?
+  reviewLink        String?
+  updatedAt         DateTime @updatedAt
 }

@@ -88,6 +88,7 @@ export function buildReminderMessage(params: {
 }): string {
   const { cafeName, customerName, reservationTime, partySize, address, parkingInfo, rules } = params;
   const time = reservationTime.toLocaleTimeString("ko-KR", {
+    timeZone: "Asia/Seoul",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -102,6 +103,24 @@ export function buildReminderMessage(params: {
   if (rules) sections.push(`이용 안내: ${rules}`);
 
   sections.push("안전하고 즐거운 시간 보내세요 :)");
+
+  return sections.join("\n\n");
+}
+
+export function buildFollowUpMessage(params: {
+  cafeName: string;
+  customerName: string;
+  reviewLink?: string | null;
+}): string {
+  const { cafeName, customerName, reviewLink } = params;
+
+  const sections = [`[${cafeName}] ${customerName}님, 오늘 이용해 주셔서 감사합니다!`];
+
+  if (reviewLink) {
+    sections.push(`소중한 리뷰 한 줄 남겨주시면 저희에게 큰 힘이 됩니다 :)\n${reviewLink}`);
+  } else {
+    sections.push("다음에 또 즐거운 시간으로 찾아뵙겠습니다 :)");
+  }
 
   return sections.join("\n\n");
 }

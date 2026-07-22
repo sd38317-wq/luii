@@ -6,7 +6,16 @@ const SETTINGS_ID = "singleton";
 export async function GET() {
   const settings = await prisma.settings.findUnique({ where: { id: SETTINGS_ID } });
   return NextResponse.json(
-    settings ?? { id: SETTINGS_ID, cafeName: null, address: null, parkingInfo: null, rules: null },
+    settings ?? {
+      id: SETTINGS_ID,
+      cafeName: null,
+      address: null,
+      parkingInfo: null,
+      rules: null,
+      checkoutDaysAfter: null,
+      checkoutTime: null,
+      reviewLink: null,
+    },
   );
 }
 
@@ -17,11 +26,21 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
   }
 
+  const rawDays = body.checkoutDaysAfter;
+  const checkoutDaysAfter =
+    rawDays === null || rawDays === undefined || rawDays === "" ? null : Number(rawDays);
+
   const data = {
     cafeName: body.cafeName?.trim() || null,
     address: body.address?.trim() || null,
     parkingInfo: body.parkingInfo?.trim() || null,
     rules: body.rules?.trim() || null,
+    checkoutDaysAfter:
+      checkoutDaysAfter !== null && Number.isFinite(checkoutDaysAfter) && checkoutDaysAfter >= 0
+        ? checkoutDaysAfter
+        : null,
+    checkoutTime: /^\d{1,2}:\d{2}$/.test(body.checkoutTime?.trim() ?? "") ? body.checkoutTime.trim() : null,
+    reviewLink: body.reviewLink?.trim() || null,
   };
 
   const settings = await prisma.settings.upsert({
