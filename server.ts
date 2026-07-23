@@ -1,7 +1,12 @@
 import { createServer } from "http";
 import cron from "node-cron";
 import next from "next";
-import { runReminderCheck, runFollowUpCheck, runCheckoutNoticeCheck } from "./src/lib/reminder";
+import {
+  runDayBeforeReminderCheck,
+  runReminderCheck,
+  runFollowUpCheck,
+  runCheckoutNoticeCheck,
+} from "./src/lib/reminder";
 
 const dev = process.env.NODE_ENV !== "production";
 const port = Number(process.env.PORT) || 3000;
@@ -18,6 +23,15 @@ app
     });
 
     cron.schedule("* * * * *", async () => {
+      try {
+        const sentCount = await runDayBeforeReminderCheck();
+        if (sentCount > 0) {
+          console.log(`[cron] day-before reminder check sent ${sentCount} message(s)`);
+        }
+      } catch (err) {
+        console.error("[cron] day-before reminder check failed:", err);
+      }
+
       try {
         const sentCount = await runReminderCheck();
         if (sentCount > 0) {
@@ -46,7 +60,9 @@ app
       }
     });
 
-    console.log("[cron] 30분 전 예약 알림 + 이용 후 안내 + 리뷰 안내 스케줄러 시작 (1분마다 확인)");
+    console.log(
+      "[cron] 전날 안내 + 30분 전 예약 알림 + 이용 후 안내 + 리뷰 안내 스케줄러 시작 (1분마다 확인)",
+    );
   })
   .catch((err) => {
     console.error("[server] failed to prepare Next.js app:", err);

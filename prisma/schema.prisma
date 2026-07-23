@@ -26,6 +26,7 @@ model Reservation {
   partySize            Int?
   memo                 String?
   status               ReservationStatus @default(PENDING)
+  dayBeforeReminderSentAt DateTime?
   reminderSentAt       DateTime?
   followUpSentAt       DateTime?
   checkoutNoticeSentAt DateTime?
@@ -45,6 +46,7 @@ model Settings {
   checkoutTime           String?
   reviewLink             String?
   giftEventContact       String?
+  adOptOutNumber         String?
   checkoutNoticeTemplate String?
   followUpTemplate       String?
   updatedAt              DateTime @updatedAt

@@ -12,6 +12,7 @@ type Settings = {
   checkoutTime: string | null;
   reviewLink: string | null;
   giftEventContact: string | null;
+  adOptOutNumber: string | null;
   checkoutNoticeTemplate: string | null;
   followUpTemplate: string | null;
 };
@@ -25,6 +26,7 @@ const emptySettings: Settings = {
   checkoutTime: "11:59",
   reviewLink: "",
   giftEventContact: "",
+  adOptOutNumber: "",
   checkoutNoticeTemplate: DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
   followUpTemplate: DEFAULT_FOLLOWUP_TEMPLATE,
 };
@@ -49,6 +51,7 @@ export default function SettingsPanel() {
           checkoutTime: data.checkoutTime ?? "11:59",
           reviewLink: data.reviewLink ?? "",
           giftEventContact: data.giftEventContact ?? "",
+          adOptOutNumber: data.adOptOutNumber ?? "",
           checkoutNoticeTemplate: data.checkoutNoticeTemplate ?? DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
           followUpTemplate: data.followUpTemplate ?? DEFAULT_FOLLOWUP_TEMPLATE,
         }),
@@ -84,7 +87,8 @@ export default function SettingsPanel() {
       {open && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-t border-gray-100 p-5">
           <p className="text-xs text-gray-500">
-            여기에 적어두면 예약 안내 문자에 자동으로 들어갑니다. 비워두면 그 줄은 문자에서 빠집니다.
+            여기에 적어두면 예약 안내 문자(전날 20시 안내 + 30분 전 안내)에 자동으로 들어갑니다. 비워두면 그
+            줄은 문자에서 빠집니다.
           </p>
 
           <input
@@ -114,7 +118,8 @@ export default function SettingsPanel() {
 
           <div className="mt-2 border-t border-gray-100 pt-3">
             <p className="text-xs text-gray-500">
-              마지막 리뷰 요청 문자(③번)는 예약 시각 기준 아래 기준으로 발송됩니다.
+              마지막 리뷰 요청 문자(③번)는 예약 시각 기준 아래 기준으로 발송됩니다. 광고성 문자는 법적으로
+              밤 9시~아침 8시에 보낼 수 없으니, 발송 시각은 그 사이를 피해서 정해주세요.
             </p>
           </div>
 
@@ -158,6 +163,18 @@ export default function SettingsPanel() {
           <p className="-mt-2 text-xs text-gray-400">
             이 연락처로 퇴실 정돈 사진, 세븐일레븐 영수증+계좌번호, 리뷰 캡처를 받습니다. 확인 후 환급/상품권
             지급은 사장님이 직접 해주셔야 해요 (자동 아님).
+          </p>
+
+          <input
+            placeholder="무료수신거부 080 번호 (예: 080-1234-5678)"
+            value={settings.adOptOutNumber ?? ""}
+            onChange={(e) => setSettings({ ...settings, adOptOutNumber: e.target.value })}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 focus:border-orange-400 focus:outline-none sm:text-sm"
+          />
+          <p className="-mt-2 text-xs text-gray-400">
+            상품권/환급 혜택이 들어간 ②③번 문자는 법적으로 광고성 문자라서, 앞에 (광고) 표기와 끝에
+            무료수신거부 080 번호가 자동으로 붙어요. 080 번호는 알리고 사이트의 부가서비스 메뉴에서
+            개통할 수 있습니다 (개통 전까지는 (광고) 표기만 붙어요).
           </p>
 
           <div className="mt-2 border-t border-gray-100 pt-3">

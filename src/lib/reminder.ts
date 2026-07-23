@@ -1,5 +1,11 @@
 import { prisma } from "./prisma";
-import { sendSms, buildReminderMessage, buildFollowUpMessage, buildCheckoutNoticeMessage } from "./sms";
+import {
+  sendSms,
+  buildDayBeforeReminderMessage,
+  buildReminderMessage,
+  buildFollowUpMessage,
+  buildCheckoutNoticeMessage,
+} from "./sms";
 import { sendFailureAlert } from "./alert";
 
 const REMINDER_MINUTES = 30;
@@ -33,6 +39,82 @@ function computeCheckoutTime(reservationTime: Date, daysAfter: number, timeStr: 
   return new Date(
     Date.UTC(Number(map.year), Number(map.month) - 1, Number(map.day) + daysAfter, hour - 9, minute),
   );
+}
+
+// 노쇼 방지에는 당일 30분 전 문자보다 전날 저녁 문자가 더 효과적이라(업계 권장: 전날 17~20시),
+// 예약 전날 20시에 미리 한 번 안내를 보낸다. 광고성 문자 야간 제한(21시~)에도 걸리지 않는 시각이다.
+const DAY_BEFORE_REMINDER_TIME = "20:00";
+
+export async function runDayBeforeReminderCheck(): Promise<number> {
+  const now = new Date();
+
+  const candidates = await prisma.reservation.findMany({
+    where: {
+      status: "PENDING",
+      dayBeforeReminderSentAt: null,
+      reservationTime: { gt: now },
+    },
+  });
+
+  if (candidates.length === 0) return 0;
+
+  const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
+  const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
+  const address = settings?.address || process.env.CAFE_ADDRESS || null;
+  const parkingInfo = settings?.parkingInfo || process.env.CAFE_PARKING_INFO || null;
+  const rules = settings?.rules || process.env.CAFE_RULES || null;
+
+  let sentCount = 0;
+
+  for (const reservation of candidates) {
+    const triggerAt = computeCheckoutTime(reservation.reservationTime, -1, DAY_BEFORE_REMINDER_TIME);
+    if (triggerAt > now) continue;
+
+    // 예약 당일(한국 시각 자정 이후)에 뒤늦게 등록된 예약은 "내일 예약" 문자가 오히려
+    // 혼란을 주므로 보내지 않고 도장만 찍는다. 당일 30분 전 문자가 어차피 나간다.
+    const reservationDayStart = computeCheckoutTime(reservation.reservationTime, 0, "00:00");
+    if (now >= reservationDayStart) {
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { dayBeforeReminderSentAt: new Date() },
+      });
+      console.log(
+        `[day-before] skipped (same-day booking) for ${reservation.customerName} (${reservation.phone})`,
+      );
+      continue;
+    }
+
+    const message = buildDayBeforeReminderMessage({
+      cafeName,
+      customerName: reservation.customerName,
+      reservationTime: reservation.reservationTime,
+      partySize: reservation.partySize,
+      address,
+      parkingInfo,
+      rules,
+    });
+
+    const result = await sendSms(reservation.phone, message, `[${cafeName}] 예약 안내`);
+
+    if (result.success) {
+      await prisma.reservation.update({
+        where: { id: reservation.id },
+        data: { dayBeforeReminderSentAt: new Date() },
+      });
+      sentCount++;
+      console.log(`[day-before] sent to ${reservation.customerName} (${reservation.phone})`);
+    } else {
+      console.error(
+        `[day-before] failed for ${reservation.customerName} (${reservation.phone}): ${result.error}`,
+      );
+      await sendFailureAlert(
+        "[예약 전날 안내 문자 발송 실패]",
+        `${reservation.customerName}(${reservation.phone})님에게 예약 전날 안내 문자 발송이 실패했어요.\n\n오류: ${result.error}\n\n관리자 페이지에서 확인해주세요.`,
+      );
+    }
+  }
+
+  return sentCount;
 }
 
 export async function runReminderCheck(): Promise<number> {
@@ -95,6 +177,7 @@ export async function runFollowUpCheck(): Promise<number> {
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const reviewLink = settings?.reviewLink || null;
   const giftEventContact = settings?.giftEventContact || null;
+  const adOptOutNumber = settings?.adOptOutNumber || null;
   const followUpTemplate = settings?.followUpTemplate || null;
   const checkoutDaysAfter = settings?.checkoutDaysAfter ?? DEFAULT_CHECKOUT_DAYS_AFTER;
   const checkoutTime = settings?.checkoutTime || DEFAULT_CHECKOUT_TIME;
@@ -130,6 +213,7 @@ export async function runFollowUpCheck(): Promise<number> {
       reviewLink,
       giftEventContact,
       template: followUpTemplate,
+      adOptOutNumber,
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);
@@ -161,6 +245,7 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const giftEventContact = settings?.giftEventContact || null;
+  const adOptOutNumber = settings?.adOptOutNumber || null;
   const checkoutNoticeTemplate = settings?.checkoutNoticeTemplate || null;
 
   const candidates = await prisma.reservation.findMany({
@@ -197,6 +282,7 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
       customerName: reservation.customerName,
       giftEventContact,
       template: checkoutNoticeTemplate,
+      adOptOutNumber,
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);

@@ -2,6 +2,7 @@ import {
   DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
   DEFAULT_FOLLOWUP_TEMPLATE,
   applyMessageTemplate,
+  ensureAdCompliance,
 } from "./messageTemplates";
 
 const ALIGO_ENDPOINT = "https://apis.aligo.in/send/";
@@ -76,6 +77,36 @@ export async function sendSms(to: string, text: string, subject?: string): Promi
   }
 }
 
+export function buildDayBeforeReminderMessage(params: {
+  cafeName: string;
+  customerName: string;
+  reservationTime: Date;
+  partySize?: number | null;
+  address?: string | null;
+  parkingInfo?: string | null;
+  rules?: string | null;
+}): string {
+  const { cafeName, customerName, reservationTime, partySize, address, parkingInfo, rules } = params;
+  const time = reservationTime.toLocaleTimeString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const sections = [
+    `[${cafeName}] ${customerName}님, 내일 예약이 있어 미리 안내드려요!\n예약시간: 내일 ${time}${partySize ? ` / 인원: ${partySize}명` : ""}`,
+  ];
+
+  if (address) sections.push(`오시는 길: ${address}`);
+  if (parkingInfo) sections.push(`주차 안내: ${parkingInfo}`);
+  if (rules) sections.push(`이용 안내: ${rules}`);
+
+  sections.push("일정 변경이 필요하시면 미리 연락 부탁드려요. 내일 뵙겠습니다 :)");
+
+  return sections.join("\n\n");
+}
+
 export function buildReminderMessage(params: {
   cafeName: string;
   customerName: string;
@@ -112,15 +143,18 @@ export function buildFollowUpMessage(params: {
   reviewLink?: string | null;
   giftEventContact?: string | null;
   template?: string | null;
+  adOptOutNumber?: string | null;
 }): string {
-  const { cafeName, customerName, reviewLink, giftEventContact, template } = params;
+  const { cafeName, customerName, reviewLink, giftEventContact, template, adOptOutNumber } = params;
 
-  return applyMessageTemplate(template?.trim() || DEFAULT_FOLLOWUP_TEMPLATE, {
+  const message = applyMessageTemplate(template?.trim() || DEFAULT_FOLLOWUP_TEMPLATE, {
     카페명: cafeName,
     고객명: customerName,
     리뷰링크: reviewLink ?? "",
     연락처: giftEventContact ?? "",
   });
+
+  return ensureAdCompliance(message, adOptOutNumber);
 }
 
 export function buildCheckoutNoticeMessage(params: {
@@ -128,12 +162,15 @@ export function buildCheckoutNoticeMessage(params: {
   customerName: string;
   giftEventContact?: string | null;
   template?: string | null;
+  adOptOutNumber?: string | null;
 }): string {
-  const { cafeName, customerName, giftEventContact, template } = params;
+  const { cafeName, customerName, giftEventContact, template, adOptOutNumber } = params;
 
-  return applyMessageTemplate(template?.trim() || DEFAULT_CHECKOUT_NOTICE_TEMPLATE, {
+  const message = applyMessageTemplate(template?.trim() || DEFAULT_CHECKOUT_NOTICE_TEMPLATE, {
     카페명: cafeName,
     고객명: customerName,
     연락처: giftEventContact ?? "",
   });
+
+  return ensureAdCompliance(message, adOptOutNumber);
 }
