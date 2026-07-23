@@ -5,7 +5,11 @@ import {
   ensureAdCompliance,
 } from "./messageTemplates";
 
-const ALIGO_ENDPOINT = "https://apis.aligo.in/send/";
+// SMS 발송 — sms-relay(barun-sms-relay.fly.dev) 경유
+// 알리고 발송 서버 IP 등록은 relay 앱 하나에만 해두면 되므로(고정 egress IP 비용도 앱당이 아닌
+// relay 하나에만 발생), barun/luii 두 앱이 이 relay를 공유해서 문자를 보낸다.
+// SMS/LMS 판단(바이트 길이)도 relay 쪽에서 처리하므로 여기서는 하지 않는다.
+// 필요 환경변수: SMS_RELAY_URL, SMS_RELAY_SECRET
 
 function normalizePhone(phone: string): string {
   return phone.replace(/[^0-9]/g, "");
@@ -16,59 +20,36 @@ export interface SendSmsResult {
   error?: string;
 }
 
-// SMS(단문)는 90바이트가 넘어가면 전송이 거부되거나 잘릴 수 있어, 그 이상이면 LMS(장문)로 자동 전환한다.
-// 한글/특수문자는 2바이트, 영문/숫자/공백은 1바이트로 계산하는 통신사 관행을 따른다.
-const SMS_BYTE_LIMIT = 90;
-
-function estimateByteLength(text: string): number {
-  let bytes = 0;
-  for (const char of text) {
-    bytes += char.charCodeAt(0) > 127 ? 2 : 1;
-  }
-  return bytes;
-}
-
 export async function sendSms(to: string, text: string, subject?: string): Promise<SendSmsResult> {
-  const apiKey = process.env.ALIGO_API_KEY;
-  const userId = process.env.ALIGO_USER_ID;
-  const from = process.env.ALIGO_SENDER_NUMBER;
+  const relayUrl = process.env.SMS_RELAY_URL;
+  const relaySecret = process.env.SMS_RELAY_SECRET;
 
-  if (!apiKey || !userId || !from) {
+  if (!relayUrl || !relaySecret) {
     return {
       success: false,
-      error: "ALIGO_API_KEY, ALIGO_USER_ID, ALIGO_SENDER_NUMBER 환경변수가 설정되지 않았습니다.",
+      error: "SMS_RELAY_URL, SMS_RELAY_SECRET 환경변수가 설정되지 않았습니다.",
     };
   }
 
-  const isLong = estimateByteLength(text) > SMS_BYTE_LIMIT;
-
-  const body = new URLSearchParams({
-    key: apiKey,
-    user_id: userId,
-    sender: normalizePhone(from),
-    receiver: normalizePhone(to),
-    msg: text,
-    msg_type: isLong ? "LMS" : "SMS",
-  });
-
-  if (isLong) {
-    body.set("title", subject ?? "예약 안내");
+  const toNorm = normalizePhone(to);
+  if (toNorm.length < 9) {
+    return { success: false, error: `수신번호 형식을 확인해주세요: ${to}` };
   }
 
   try {
-    const res = await fetch(ALIGO_ENDPOINT, {
+    const res = await fetch(relayUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
+      headers: {
+        "Content-Type": "application/json",
+        "x-relay-key": relaySecret,
+      },
+      body: JSON.stringify({ to: toNorm, text, subject: subject ?? "예약 안내" }),
     });
 
     const data = await res.json().catch(() => null);
 
-    if (!res.ok || !data || Number(data.result_code) !== 1) {
-      return {
-        success: false,
-        error: `알리고 API 오류: ${data?.message ?? `HTTP ${res.status}`}`,
-      };
+    if (!res.ok || !data || data.success !== true) {
+      return { success: false, error: data?.error ?? `relay 응답 오류 (HTTP ${res.status})` };
     }
 
     return { success: true };
