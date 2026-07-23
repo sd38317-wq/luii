@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import SettingsPanel from "./SettingsPanel";
+import MessageHistoryPanel from "./MessageHistoryPanel";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -222,6 +223,8 @@ export default function ReservationManager({ title }: { title: string }) {
             로그아웃
           </button>
         </div>
+
+        <MessageHistoryPanel />
 
         <SettingsPanel />
 

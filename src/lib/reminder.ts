@@ -45,6 +45,35 @@ function computeCheckoutTime(reservationTime: Date, daysAfter: number, timeStr: 
 // 예약 전날 20시에 미리 한 번 안내를 보낸다. 광고성 문자 야간 제한(21시~)에도 걸리지 않는 시각이다.
 const DAY_BEFORE_REMINDER_TIME = "20:00";
 
+// 발송 시도를 DB에 남겨서 관리자 화면 "발송 이력"에서 보여준다.
+// 기록 실패가 문자 발송 흐름 자체를 막으면 안 되므로 오류는 삼킨다.
+async function logMessage(params: {
+  customerName: string;
+  phone: string;
+  messageType: "DAY_BEFORE" | "REMINDER" | "CHECKOUT_NOTICE" | "FOLLOW_UP";
+  success: boolean;
+  error?: string;
+}): Promise<void> {
+  try {
+    await prisma.messageLog.create({ data: { ...params, error: params.error ?? null } });
+  } catch (err) {
+    console.error("[message-log] failed to record:", err);
+  }
+}
+
+// 이력이 무한히 쌓이지 않도록 90일 지난 기록은 지운다 (server.ts cron에서 호출).
+const LOG_RETENTION_DAYS = 90;
+
+export async function cleanupOldMessageLogs(): Promise<void> {
+  try {
+    await prisma.messageLog.deleteMany({
+      where: { createdAt: { lt: new Date(Date.now() - LOG_RETENTION_DAYS * 24 * 60 * 60_000) } },
+    });
+  } catch (err) {
+    console.error("[message-log] cleanup failed:", err);
+  }
+}
+
 export async function runDayBeforeReminderCheck(): Promise<number> {
   const now = new Date();
 
@@ -97,6 +126,13 @@ export async function runDayBeforeReminderCheck(): Promise<number> {
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 예약 안내`);
+    await logMessage({
+      customerName: reservation.customerName,
+      phone: reservation.phone,
+      messageType: "DAY_BEFORE",
+      success: result.success,
+      error: result.error,
+    });
 
     if (result.success) {
       await prisma.reservation.update({
@@ -152,6 +188,13 @@ export async function runReminderCheck(): Promise<number> {
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 예약 안내`);
+    await logMessage({
+      customerName: reservation.customerName,
+      phone: reservation.phone,
+      messageType: "REMINDER",
+      success: result.success,
+      error: result.error,
+    });
 
     if (result.success) {
       await prisma.reservation.update({
@@ -222,6 +265,13 @@ export async function runFollowUpCheck(): Promise<number> {
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);
+    await logMessage({
+      customerName: reservation.customerName,
+      phone: reservation.phone,
+      messageType: "FOLLOW_UP",
+      success: result.success,
+      error: result.error,
+    });
 
     if (result.success) {
       await prisma.reservation.update({
@@ -293,6 +343,13 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
     });
 
     const result = await sendSms(reservation.phone, message, `[${cafeName}] 이용 안내`);
+    await logMessage({
+      customerName: reservation.customerName,
+      phone: reservation.phone,
+      messageType: "CHECKOUT_NOTICE",
+      success: result.success,
+      error: result.error,
+    });
 
     if (result.success) {
       await prisma.reservation.update({

@@ -6,6 +6,7 @@ import {
   runReminderCheck,
   runFollowUpCheck,
   runCheckoutNoticeCheck,
+  cleanupOldMessageLogs,
 } from "./src/lib/reminder";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -58,6 +59,11 @@ app
       } catch (err) {
         console.error("[cron] checkout-notice check failed:", err);
       }
+    });
+
+    // 발송 이력은 90일만 보관 — 하루에 한 번 새벽 4시(KST, TZ=Asia/Seoul로 실행됨)에 정리한다.
+    cron.schedule("0 4 * * *", async () => {
+      await cleanupOldMessageLogs();
     });
 
     console.log(
