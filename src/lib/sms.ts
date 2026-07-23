@@ -1,25 +1,13 @@
-import crypto from "crypto";
 import {
   DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
   DEFAULT_FOLLOWUP_TEMPLATE,
   applyMessageTemplate,
 } from "./messageTemplates";
 
-const SOLAPI_ENDPOINT = "https://api.solapi.com/messages/v4/send";
+const ALIGO_ENDPOINT = "https://apis.aligo.in/send/";
 
 function normalizePhone(phone: string): string {
   return phone.replace(/[^0-9]/g, "");
-}
-
-function buildAuthHeader(apiKey: string, apiSecret: string): string {
-  const date = new Date().toISOString();
-  const salt = crypto.randomBytes(16).toString("hex");
-  const signature = crypto
-    .createHmac("sha256", apiSecret)
-    .update(date + salt)
-    .digest("hex");
-
-  return `HMAC-SHA256 apiKey=${apiKey}, date=${date}, salt=${salt}, signature=${signature}`;
 }
 
 export interface SendSmsResult {
@@ -40,40 +28,46 @@ function estimateByteLength(text: string): number {
 }
 
 export async function sendSms(to: string, text: string, subject?: string): Promise<SendSmsResult> {
-  const apiKey = process.env.SOLAPI_API_KEY;
-  const apiSecret = process.env.SOLAPI_API_SECRET;
-  const from = process.env.SOLAPI_SENDER_NUMBER;
+  const apiKey = process.env.ALIGO_API_KEY;
+  const userId = process.env.ALIGO_USER_ID;
+  const from = process.env.ALIGO_SENDER_NUMBER;
 
-  if (!apiKey || !apiSecret || !from) {
+  if (!apiKey || !userId || !from) {
     return {
       success: false,
-      error: "SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER_NUMBER 환경변수가 설정되지 않았습니다.",
+      error: "ALIGO_API_KEY, ALIGO_USER_ID, ALIGO_SENDER_NUMBER 환경변수가 설정되지 않았습니다.",
     };
   }
 
   const isLong = estimateByteLength(text) > SMS_BYTE_LIMIT;
 
+  const body = new URLSearchParams({
+    key: apiKey,
+    user_id: userId,
+    sender: normalizePhone(from),
+    receiver: normalizePhone(to),
+    msg: text,
+    msg_type: isLong ? "LMS" : "SMS",
+  });
+
+  if (isLong) {
+    body.set("title", subject ?? "예약 안내");
+  }
+
   try {
-    const res = await fetch(SOLAPI_ENDPOINT, {
+    const res = await fetch(ALIGO_ENDPOINT, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: buildAuthHeader(apiKey, apiSecret),
-      },
-      body: JSON.stringify({
-        message: {
-          to: normalizePhone(to),
-          from: normalizePhone(from),
-          text,
-          type: isLong ? "LMS" : "SMS",
-          ...(isLong ? { subject: subject ?? "예약 안내" } : {}),
-        },
-      }),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
     });
 
-    if (!res.ok) {
-      const body = await res.text();
-      return { success: false, error: `솔라피 API 오류 (${res.status}): ${body}` };
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || Number(data.result_code) !== 1) {
+      return {
+        success: false,
+        error: `알리고 API 오류: ${data?.message ?? `HTTP ${res.status}`}`,
+      };
     }
 
     return { success: true };

@@ -14,7 +14,7 @@
 
 - Next.js (TypeScript, App Router)
 - Prisma + SQLite
-- [솔라피(Solapi)](https://solapi.com) SMS API
+- [알리고(Aligo)](https://smartsms.aligo.in) SMS API
 - node-cron (커스텀 서버에서 1분마다 실행)
 
 ## 처음 실행하기
@@ -37,21 +37,21 @@ npm run dev
 | `CAFE_ADDRESS` (선택) | 오시는 길 안내 문구, 문자에 자동으로 추가됨 |
 | `CAFE_PARKING_INFO` (선택) | 주차 안내 문구 |
 | `CAFE_RULES` (선택) | 이용 수칙 안내 문구 (실내화/양말 착용, 보호자 동반 등) |
-| `SOLAPI_API_KEY` / `SOLAPI_API_SECRET` | 솔라피 콘솔 > API Key 관리에서 발급 |
-| `SOLAPI_SENDER_NUMBER` | 문자를 보낼 발신번호 |
+| `ALIGO_USER_ID` / `ALIGO_API_KEY` | 알리고 마이페이지 > API 키 발급에서 확인 |
+| `ALIGO_SENDER_NUMBER` | 문자를 보낼 발신번호 |
 
 `CAFE_ADDRESS`/`CAFE_PARKING_INFO`/`CAFE_RULES`는 값을 채워두면 예약 안내 문자에 줄이 자동으로 추가되고, 비워두면 해당 줄이 빠집니다. 문구가 길어지면 SMS(단문, 90바이트 제한) 대신 LMS(장문)로 자동 전환되어 발송되며, LMS는 건당 비용이 조금 더 나갑니다 (앱이 바이트 수를 계산해서 자동으로 판단합니다).
 
 서버를 켜면 `http://localhost:3000` 에서 로그인 화면이 뜹니다.
 
-## 솔라피(문자 발송) 설정 방법
+## 알리고(문자 발송) 설정 방법
 
-1. [solapi.com](https://solapi.com) 가입 후 콘솔에서 API Key/Secret 발급
-2. **발신번호 사전 등록**: 정보통신망법상 문자 발신에 사용할 번호는 반드시 사전 등록/인증해야 합니다. 솔라피 콘솔의 발신번호 관리 메뉴에서 등록하세요. (등록 안 된 번호로는 발송이 거부됩니다)
+1. [smartsms.aligo.in](https://smartsms.aligo.in) 가입 후 마이페이지 > API 키 발급에서 아이디/API Key 확인
+2. **발신번호 사전 등록**: 정보통신망법상 문자 발신에 사용할 번호는 반드시 사전 등록/인증해야 합니다. 알리고 콘솔의 발신번호 관리 메뉴에서 등록하세요. (등록 안 된 번호로는 발송이 거부됩니다)
 3. 콘솔에서 문자 발송에 필요한 최소 잔액(캐시)을 충전하세요.
-4. `.env`에 API Key/Secret/발신번호를 입력하면 끝입니다.
+4. `.env`에 아이디/API Key/발신번호를 입력하면 끝입니다.
 
-솔라피가 아닌 다른 문자 API(알리고 등)를 쓰고 싶다면 `src/lib/sms.ts`의 `sendSms` 함수만 교체하면 됩니다. 나머지 코드는 `sendSms(전화번호, 메시지)` 형태만 유지되면 그대로 동작합니다.
+알리고가 아닌 다른 문자 API(솔라피 등)를 쓰고 싶다면 `src/lib/sms.ts`의 `sendSms` 함수만 교체하면 됩니다. 나머지 코드는 `sendSms(전화번호, 메시지)` 형태만 유지되면 그대로 동작합니다.
 
 ## 배포 시 꼭 알아둘 점
 
@@ -80,11 +80,11 @@ npm run dev
      CAFE_ADDRESS="오시는 길 안내" \
      CAFE_PARKING_INFO="주차 안내" \
      CAFE_RULES="이용 수칙 안내" \
-     SOLAPI_API_KEY="..." \
-     SOLAPI_API_SECRET="..." \
-     SOLAPI_SENDER_NUMBER="0212345678"
+     ALIGO_USER_ID="..." \
+     ALIGO_API_KEY="..." \
+     ALIGO_SENDER_NUMBER="0212345678"
    ```
-   (`CAFE_ADDRESS`/`CAFE_PARKING_INFO`/`CAFE_RULES`, 솔라피 관련 값은 나중에 준비되면 `fly secrets set` 명령으로 언제든 추가/변경할 수 있습니다)
+   (`CAFE_ADDRESS`/`CAFE_PARKING_INFO`/`CAFE_RULES`, 알리고 관련 값은 나중에 준비되면 `fly secrets set` 명령으로 언제든 추가/변경할 수 있습니다)
 7. 배포: `fly deploy`
 8. 배포가 끝나면 `https://<앱이름>.fly.dev` 주소가 생깁니다. 이 주소를 폰 브라우저에서 열고 로그인하면 "홈 화면에 추가"로 앱처럼 쓸 수 있습니다 (iOS: 공유 버튼 > 홈 화면에 추가 / Android Chrome: 메뉴 > 앱 설치).
 
