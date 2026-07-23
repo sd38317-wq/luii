@@ -39,10 +39,27 @@
 
 - Next.js (TypeScript, App Router)
 - Prisma + SQLite
-- [알리고(Aligo)](https://smartsms.aligo.in) SMS API — 문자 발송
+- **barun-sms-relay** (별도 Fly 앱) 경유 알리고(Aligo) SMS 발송 — 아래 "SMS 발송 구조" 참고
 - Anthropic Claude API — 예약창 캡처 사진에서 정보 자동 추출
 - Resend — 문자 발송 실패 시 이메일 알림 (선택)
 - node-cron (커스텀 서버에서 1분마다 실행)
+
+## SMS 발송 구조 (barun과 relay 공유)
+
+luii(키즈카페)와 barun(건축물용도변경, 저장소 `sd38317-wq/barun`) 두 앱은 각자 알리고를 직접 호출하지 않고, **`barun-sms-relay`라는 중계 전용 Fly 앱**을 거쳐서 문자를 보냅니다.
+
+```
+luii ─┐
+      ├─→ barun-sms-relay (알리고 발송 IP 등록 + 고정 egress IP는 여기 한 곳에만) ─→ 알리고 → 문자 발송
+barun ─┘
+```
+
+이렇게 나눈 이유는 **비용 절감**입니다. Fly의 고정 아웃바운드 IP(Static Egress IP)는 앱마다 따로 할당해야 하고 앱당 월 ~$3.60이 드는데, 알리고 IP 등록도 두 앱이 각각 해야 해서 두 배로 나갔습니다. relay 하나로 합치면 고정 IP도 relay 앱 하나에만 두면 되고, 알리고에도 relay의 IP 하나만 등록하면 됩니다.
+
+- relay 앱은 luii/barun 어느 쪽 저장소에도 속하지 않는 별도 앱입니다 (현재 별도 git 저장소는 없음).
+- luii는 relay를 `SMS_RELAY_URL`(주소) + `SMS_RELAY_SECRET`(인증키) 두 환경변수로 호출합니다. **두 값 다 barun에 설정된 것과 정확히 같아야 합니다** — barun을 배포한 쪽에 물어보세요.
+- SMS/LMS(단문/장문) 판단은 이제 relay 쪽에서 처리하므로, luii 코드에는 그 로직이 없습니다.
+- relay가 죽으면 luii와 barun 둘 다 문자 발송이 멈추므로, relay 앱 자체의 상태(`fly status`)도 가끔 확인해주는 게 좋습니다.
 
 ## 환경변수 전체 목록
 
@@ -52,8 +69,7 @@
 | `SESSION_SECRET` | 로그인 세션 서명용 임의의 긴 문자열 |
 | `CAFE_NAME` | 문자에 표시될 가게 이름 |
 | `CAFE_ADDRESS` / `CAFE_PARKING_INFO` / `CAFE_RULES` (선택) | ⓪①번 문자에 자동으로 추가되는 오시는 길/주차/이용수칙 안내 |
-| `ALIGO_USER_ID` / `ALIGO_API_KEY` | 알리고 마이페이지 > API 키 발급 |
-| `ALIGO_SENDER_NUMBER` | 문자 발신번호 (알리고에 사전 등록/인증 필요) |
+| `SMS_RELAY_URL` / `SMS_RELAY_SECRET` | barun-sms-relay 앱 주소/인증키 (barun과 동일한 값 사용) |
 | `ANTHROPIC_API_KEY` | 예약창 캡처 사진 자동입력 기능 (console.anthropic.com > API Keys) |
 | `RESEND_API_KEY` / `ADMIN_ALERT_EMAIL` (선택) | 문자 발송 실패 시 이메일 알림. resend.com 가입 후 API Key 발급 |
 
@@ -73,11 +89,14 @@ npm run dev
 
 ## 각 외부 서비스 설정 방법
 
-### 알리고 (문자 발송, 필수)
+### 알리고 / relay (문자 발송, 필수)
 
+luii는 알리고를 직접 호출하지 않고 barun-sms-relay를 거칩니다. 알리고 계정 자체의 설정(발신번호 등록, 잔액 충전, IP 등록)은 **relay 쪽에서 관리**하며, luii 쪽에서 새로 할 일은 없습니다 — `SMS_RELAY_URL`/`SMS_RELAY_SECRET` 값만 정확히 설정하면 됩니다.
+
+(참고용, relay 쪽 설정 내용)
 1. [smartsms.aligo.in](https://smartsms.aligo.in) 가입 후 마이페이지 > API 키 발급에서 아이디/API Key 확인
 2. **발신번호 사전 등록**: 정보통신망법상 필수. 알리고 콘솔의 발신번호 관리 메뉴에서 등록 (미등록 번호는 발송 거부됨)
-3. **발송 서버 IP 등록**: 알리고는 API를 호출하는 서버의 IP를 사전 등록해야 발송을 허용합니다. Fly 서버의 IP 확인 방법과 왜 고정 IP가 필요한지는 아래 "Fly 서버 IP 확인/고정" 참고.
+3. **발송 서버 IP 등록**: relay 앱의 고정 egress IP를 알리고 콘솔에 등록해야 발송이 허용됩니다.
 4. 콘솔에서 문자 발송에 필요한 최소 잔액(캐시) 충전
 
 ### Anthropic Claude (사진 자동입력, 선택이지만 강력 추천)
@@ -102,37 +121,29 @@ npm run dev
    ```bash
    fly volumes create kidscafe_data --size 1 --region sin
    ```
-6. 환경변수(시크릿) 등록:
+6. 환경변수(시크릿) 등록 — **아래 값은 전부 예시입니다. 절대 이 예시 문구를 그대로 복사하지 말고,
+   실제 발급받은 값으로 바꿔서 입력하세요** (예시 문구를 그대로 넣으면 알아보기 힘든 오류가 납니다.
+   실제로 여러 번 겪은 문제입니다):
    ```bash
    fly secrets set \
-     ADMIN_PASSWORD="실제_비밀번호" \
-     SESSION_SECRET="랜덤한_긴_문자열" \
+     ADMIN_PASSWORD="PASSWORD123!@#" \
+     SESSION_SECRET="a1b2c3d4e5f6..." \
      CAFE_NAME="바른프라이빗키즈룸 괴정점" \
-     ALIGO_USER_ID="..." \
-     ALIGO_API_KEY="..." \
-     ALIGO_SENDER_NUMBER="0107294..." \
+     SMS_RELAY_URL="RELAY_URL_HERE" \
+     SMS_RELAY_SECRET="RELAY_SECRET_HERE" \
      ANTHROPIC_API_KEY="sk-ant-..." \
      RESEND_API_KEY="re_..." \
      ADMIN_ALERT_EMAIL="sd38317@gmail.com"
    ```
+   `SMS_RELAY_URL`/`SMS_RELAY_SECRET`는 barun 앱에 설정된 것과 **정확히 같은 값**이어야 하며, 그
+   값은 barun을 배포한 쪽(다른 세션)에서 직접 받아와야 합니다 — 이 문서에는 실제 값이 적혀있지
+   않습니다.
 7. 배포: `fly deploy`
 8. 배포 후 `https://luii.fly.dev`를 폰 브라우저에서 열고 로그인 → "홈 화면에 추가"로 앱처럼 사용 가능
 
-### Fly 서버 IP 확인/고정 (알리고 IP 등록용)
+### Fly 서버 IP 고정은 이제 luii에서 직접 안 해도 됨
 
-Fly 서버의 아웃바운드 IP는 기본적으로 재배포/재시작 시 바뀔 수 있어서, 그대로 두면 알리고에 등록한 IP가 무효화되어 문자가 조용히 안 나갈 수 있습니다. **고정 IP를 할당해두는 걸 강력 권장합니다** (월 $2):
-
-```bash
-fly machine egress-ip allocate <machine-id> -a luii
-```
-
-머신 ID는 `fly status -a luii`로 확인. IP가 바뀌었는지 직접 확인하려면:
-
-```bash
-fly ssh console -a luii
-node -e "fetch('https://ifconfig.me').then(r=>r.text()).then(console.log)"
-```
-(컨테이너에 `curl`이 없어서 Node로 확인합니다)
+과거에는 luii 서버 자체의 아웃바운드 IP를 알리고에 등록/고정해야 했지만(재배포 시 IP가 바뀌면 문자가 조용히 끊기는 문제가 있었음), **지금은 알리고를 relay가 대신 호출**하므로 IP 고정/등록은 relay 앱 쪽에서만 관리하면 됩니다. luii는 관련 설정이 필요 없습니다.
 
 배포 후 코드를 수정했다면 `fly deploy` 한 번으로 재배포됩니다. 볼륨에 저장된 예약 데이터는 재배포해도 유지됩니다.
 
@@ -157,7 +168,8 @@ fly ssh console -a luii           # 서버 내부 접속 (디버깅용)
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
-| 문자가 안 감, 로그에 `인증오류입니다.-IP` | 알리고에 등록 안 된 IP에서 요청함 | Fly 서버 IP 확인 후 알리고 콘솔에 재등록. 근본적으로는 "Fly 서버 IP 고정" 적용 |
+| 문자가 안 감, 로그에 `relay 응답 오류` 또는 `SMS_RELAY_URL, SMS_RELAY_SECRET 환경변수가 설정되지 않았습니다` | relay 환경변수 미설정/오설정, 또는 relay 앱 자체가 죽어있음 | `fly secrets list -a luii`로 두 값이 있는지 확인, `fly status`로 relay 앱 상태 확인 |
+| (relay 쪽 로그에서) `인증오류입니다.-IP` | 알리고에 등록 안 된 IP에서 relay가 요청함 | relay 앱의 고정 egress IP를 알리고 콘솔에 재등록 (luii에서 할 일 아님) |
 | 사진 자동입력 시 "사진 처리 중 오류가 발생했습니다" (구버전 OCR) | 서버 메모리 부족으로 프로세스가 죽음(OOM) | 현재는 Claude API 방식으로 교체되어 해결됨 |
 | 사진 자동입력 시 알 수 없는 오류 | `ANTHROPIC_API_KEY`가 비어있거나 잘못 설정됨(예시 문구를 그대로 넣은 경우 등) | `fly logs -a luii`로 `[parseReservationImage]` 로그 확인, 키 재설정 |
 | `fly secrets set`한 값이 이상하게 동작 | 예시 명령어의 플레이스홀더 문구를 그대로 붙여넣음 | 반드시 실제 발급받은 값으로 바꿔서 입력 |
@@ -165,6 +177,7 @@ fly ssh console -a luii           # 서버 내부 접속 (디버깅용)
 
 ## 진행 중인 작업
 
+- **SMS relay 전환**: 알리고 직접 호출에서 barun-sms-relay 경유 방식으로 전환 완료. 실제 문자 발송 테스트(예약 안내 + 퇴실 안내)로 정상 도착까지 확인됨. 남은 건 luii가 예전에 알리고에 직접 등록했던 옛 IP(`138.199.24.235`)를 이제 안 쓰니, 알리고 콘솔에서 정리(삭제)만 하면 됨 (비용에는 영향 없음, 정리 차원).
 - **카카오 알림톡 전환**: 카카오톡 채널(`바른프라이빗키즈룸(괴정점)`, 검색용 URL `http://pf.kakao.com/_BExhxnX`) 개설 완료, 비즈니스 심사(사업자 인증) 진행 중 (영업일 3~5일 소요). 심사 완료 후 알리고에 채널 연동 → 문구 템플릿 승인까지 받아야 실제 전환 가능. **주의**: 알림톡은 정보성 메시지 전용이라 상품권/환급 혜택이 들어간 ②③번은 템플릿 심사에서 거절될 가능성이 높습니다. ⓪①번(예약 안내)만 알림톡으로 전환하고, ②③번은 문자로 유지하는 구성이 현실적입니다.
 - **080 무료수신거부 번호 개통**: 알리고 부가서비스에서 개통 후 `/admin` 설정의 "무료수신거부 080 번호"에 입력 필요 (②③번 광고 표기 의무 완성용).
 
