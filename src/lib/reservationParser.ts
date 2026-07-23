@@ -72,10 +72,15 @@ export async function parseReservationImage(base64Image: string): Promise<ParseI
     const buffer = Buffer.from(base64Image, "base64");
     const metadata = await sharp(buffer).metadata();
     const scale = 3;
+    // 요즘 폰 스크린샷은 원본 해상도가 이미 높아서 무조건 3배 확대하면
+    // 메모리 사용량이 서버(512MB)를 넘겨 프로세스가 죽을 수 있다.
+    // OCR 정확도에 큰 차이가 없는 선에서 목표 너비를 상한선으로 제한한다.
+    const MAX_WIDTH = 2000;
+    const targetWidth = Math.min(Math.round((metadata.width ?? 800) * scale), MAX_WIDTH);
 
     // 화질이 낮은 캡처에서도 라벨/숫자를 안정적으로 읽도록 확대 + 흑백 변환 + 대비 보정을 거친다.
     const preprocessed = await sharp(buffer)
-      .resize({ width: Math.round((metadata.width ?? 800) * scale), kernel: "lanczos3" })
+      .resize({ width: targetWidth, kernel: "lanczos3" })
       .grayscale()
       .normalise({ lower: 1, upper: 99 })
       .png()
@@ -98,6 +103,7 @@ export async function parseReservationImage(base64Image: string): Promise<ParseI
 
     return { success: true, data: extracted };
   } catch (err) {
+    console.error("[parseReservationImage] failed:", err);
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
