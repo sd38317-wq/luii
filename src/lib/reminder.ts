@@ -48,6 +48,9 @@ const DAY_BEFORE_REMINDER_TIME = "20:00";
 export async function runDayBeforeReminderCheck(): Promise<number> {
   const now = new Date();
 
+  const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
+  if (settings?.sendDayBefore === false) return 0;
+
   const candidates = await prisma.reservation.findMany({
     where: {
       status: "PENDING",
@@ -58,7 +61,6 @@ export async function runDayBeforeReminderCheck(): Promise<number> {
 
   if (candidates.length === 0) return 0;
 
-  const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const address = settings?.address || process.env.CAFE_ADDRESS || null;
   const parkingInfo = settings?.parkingInfo || process.env.CAFE_PARKING_INFO || null;
@@ -122,6 +124,9 @@ export async function runReminderCheck(): Promise<number> {
   const windowStart = new Date(now.getTime() - GRACE_MINUTES * 60_000);
   const windowEnd = new Date(now.getTime() + REMINDER_MINUTES * 60_000);
 
+  const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
+  if (settings?.sendReminder === false) return 0;
+
   const due = await prisma.reservation.findMany({
     where: {
       status: "PENDING",
@@ -129,8 +134,6 @@ export async function runReminderCheck(): Promise<number> {
       reservationTime: { gte: windowStart, lte: windowEnd },
     },
   });
-
-  const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
 
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const address = settings?.address || process.env.CAFE_ADDRESS || null;
@@ -174,6 +177,8 @@ export async function runFollowUpCheck(): Promise<number> {
   const now = new Date();
 
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
+  if (settings?.sendFollowUp === false) return 0;
+
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const reviewLink = settings?.reviewLink || null;
   const giftEventContact = settings?.giftEventContact || null;
@@ -243,6 +248,8 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
   const now = new Date();
 
   const settings = await prisma.settings.findUnique({ where: { id: "singleton" } });
+  if (settings?.sendCheckoutNotice === false) return 0;
+
   const cafeName = settings?.cafeName || process.env.CAFE_NAME || "키즈카페";
   const giftEventContact = settings?.giftEventContact || null;
   const adOptOutNumber = settings?.adOptOutNumber || null;

@@ -13,6 +13,10 @@ type Settings = {
   reviewLink: string | null;
   giftEventContact: string | null;
   adOptOutNumber: string | null;
+  sendDayBefore: boolean;
+  sendReminder: boolean;
+  sendCheckoutNotice: boolean;
+  sendFollowUp: boolean;
   checkoutNoticeTemplate: string | null;
   followUpTemplate: string | null;
 };
@@ -27,6 +31,10 @@ const emptySettings: Settings = {
   reviewLink: "",
   giftEventContact: "",
   adOptOutNumber: "",
+  sendDayBefore: true,
+  sendReminder: true,
+  sendCheckoutNotice: true,
+  sendFollowUp: true,
   checkoutNoticeTemplate: DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
   followUpTemplate: DEFAULT_FOLLOWUP_TEMPLATE,
 };
@@ -52,6 +60,10 @@ export default function SettingsPanel() {
           reviewLink: data.reviewLink ?? "",
           giftEventContact: data.giftEventContact ?? "",
           adOptOutNumber: data.adOptOutNumber ?? "",
+          sendDayBefore: data.sendDayBefore ?? true,
+          sendReminder: data.sendReminder ?? true,
+          sendCheckoutNotice: data.sendCheckoutNotice ?? true,
+          sendFollowUp: data.sendFollowUp ?? true,
           checkoutNoticeTemplate: data.checkoutNoticeTemplate ?? DEFAULT_CHECKOUT_NOTICE_TEMPLATE,
           followUpTemplate: data.followUpTemplate ?? DEFAULT_FOLLOWUP_TEMPLATE,
         }),
@@ -86,6 +98,32 @@ export default function SettingsPanel() {
 
       {open && (
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-3 border-t border-gray-100 p-5">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="mb-2 text-xs font-semibold text-gray-600">
+              문자 발송 켜기/끄기 — 체크를 해제하면 그 문자는 발송되지 않아요
+            </p>
+            <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {(
+                [
+                  ["sendDayBefore", "⓪ 전날 20시 예약 안내"],
+                  ["sendReminder", "① 30분 전 예약 안내"],
+                  ["sendCheckoutNotice", "② 퇴실 안내"],
+                  ["sendFollowUp", "③ 다음날 리뷰 요청"],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={settings[key]}
+                    onChange={(e) => setSettings({ ...settings, [key]: e.target.checked })}
+                    className="h-4 w-4 accent-orange-500"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
           <p className="text-xs text-gray-500">
             여기에 적어두면 예약 안내 문자(전날 20시 안내 + 30분 전 안내)에 자동으로 들어갑니다. 비워두면 그
             줄은 문자에서 빠집니다.

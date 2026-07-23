@@ -77,7 +77,7 @@ function StatusBadge({ r }: { r: Reservation }) {
   return <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">예약됨</span>;
 }
 
-export default function ReservationManager() {
+export default function ReservationManager({ title }: { title: string }) {
   const router = useRouter();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [form, setForm] = useState(emptyForm);
@@ -214,7 +214,7 @@ export default function ReservationManager() {
       />
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">바른프라이빗키즈룸 _ 괴정점 예약관리</h1>
+          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
           <button
             onClick={handleLogout}
             className="text-sm text-gray-500 underline hover:text-gray-700"

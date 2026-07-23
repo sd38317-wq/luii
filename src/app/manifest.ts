@@ -1,10 +1,12 @@
 import type { MetadataRoute } from "next";
+import { getAppTitle } from "@/lib/branding";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const title = await getAppTitle();
   return {
-    name: "바른프라이빗키즈룸 _ 괴정점 예약관리",
-    short_name: "괴정점 예약관리",
-    description: "네이버 예약 30분 전 자동 SMS 안내 발송 관리 도구",
+    name: title,
+    short_name: title,
+    description: "예약 안내 문자를 자동으로 발송해주는 관리 도구",
     start_url: "/admin",
     display: "standalone",
     background_color: "#f9fafb",

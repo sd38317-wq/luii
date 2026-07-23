@@ -47,6 +47,10 @@ model Settings {
   reviewLink             String?
   giftEventContact       String?
   adOptOutNumber         String?
+  sendDayBefore          Boolean  @default(true)
+  sendReminder           Boolean  @default(true)
+  sendCheckoutNotice     Boolean  @default(true)
+  sendFollowUp           Boolean  @default(true)
   checkoutNoticeTemplate String?
   followUpTemplate       String?
   updatedAt              DateTime @updatedAt
