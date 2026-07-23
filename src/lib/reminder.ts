@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { sendSms, buildReminderMessage, buildFollowUpMessage, buildCheckoutNoticeMessage } from "./sms";
+import { sendFailureAlert } from "./alert";
 
 const REMINDER_MINUTES = 30;
 const GRACE_MINUTES = 5;
@@ -77,6 +78,10 @@ export async function runReminderCheck(): Promise<number> {
       console.error(
         `[reminder] failed for ${reservation.customerName} (${reservation.phone}): ${result.error}`,
       );
+      await sendFailureAlert(
+        "[예약 안내 문자 발송 실패]",
+        `${reservation.customerName}(${reservation.phone})님에게 예약 안내 문자 발송이 실패했어요.\n\n오류: ${result.error}\n\n관리자 페이지에서 확인해주세요.`,
+      );
     }
   }
 
@@ -140,6 +145,10 @@ export async function runFollowUpCheck(): Promise<number> {
       console.error(
         `[followup] failed for ${reservation.customerName} (${reservation.phone}): ${result.error}`,
       );
+      await sendFailureAlert(
+        "[리뷰 요청 문자 발송 실패]",
+        `${reservation.customerName}(${reservation.phone})님에게 리뷰 요청 문자 발송이 실패했어요.\n\n오류: ${result.error}\n\n관리자 페이지에서 확인해주세요.`,
+      );
     }
   }
 
@@ -202,6 +211,10 @@ export async function runCheckoutNoticeCheck(): Promise<number> {
     } else {
       console.error(
         `[checkout-notice] failed for ${reservation.customerName} (${reservation.phone}): ${result.error}`,
+      );
+      await sendFailureAlert(
+        "[퇴실 안내 문자 발송 실패]",
+        `${reservation.customerName}(${reservation.phone})님에게 퇴실 안내 문자 발송이 실패했어요.\n\n오류: ${result.error}\n\n관리자 페이지에서 확인해주세요.`,
       );
     }
   }
