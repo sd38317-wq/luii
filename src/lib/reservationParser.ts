@@ -1,3 +1,5 @@
+import { isAsciiSafeSecret } from "./envGuard";
+
 export interface ExtractedReservation {
   customerName: string;
   phone: string;
@@ -44,9 +46,7 @@ export async function parseReservationImage(
   mediaType?: string,
 ): Promise<ParseImageResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  // API 키가 비어있거나, 예시 문구를 그대로 붙여넣은 경우(한글 포함) 요청 자체가
-  // 알아보기 힘든 오류로 죽지 않도록 미리 걸러낸다.
-  if (!apiKey || !/^[\x20-\x7e]+$/.test(apiKey)) {
+  if (!isAsciiSafeSecret(apiKey)) {
     console.error("[parseReservationImage] ANTHROPIC_API_KEY가 비어있거나 올바르지 않습니다.");
     return { success: false, error: "ANTHROPIC_API_KEY 환경변수가 올바르게 설정되지 않았습니다." };
   }

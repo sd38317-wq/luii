@@ -121,18 +121,23 @@ luii는 알리고를 직접 호출하지 않고 barun-sms-relay를 거칩니다.
    ```bash
    fly volumes create kidscafe_data --size 1 --region sin
    ```
-6. 환경변수(시크릿) 등록:
+6. 환경변수(시크릿) 등록 — **아래 값은 전부 예시입니다. 절대 이 예시 문구를 그대로 복사하지 말고,
+   실제 발급받은 값으로 바꿔서 입력하세요** (예시 문구를 그대로 넣으면 알아보기 힘든 오류가 납니다.
+   실제로 여러 번 겪은 문제입니다):
    ```bash
    fly secrets set \
-     ADMIN_PASSWORD="실제_비밀번호" \
-     SESSION_SECRET="랜덤한_긴_문자열" \
+     ADMIN_PASSWORD="PASSWORD123!@#" \
+     SESSION_SECRET="a1b2c3d4e5f6..." \
      CAFE_NAME="바른프라이빗키즈룸 괴정점" \
-     SMS_RELAY_URL="barun과 동일한 값" \
-     SMS_RELAY_SECRET="barun과 동일한 값" \
+     SMS_RELAY_URL="RELAY_URL_HERE" \
+     SMS_RELAY_SECRET="RELAY_SECRET_HERE" \
      ANTHROPIC_API_KEY="sk-ant-..." \
      RESEND_API_KEY="re_..." \
      ADMIN_ALERT_EMAIL="sd38317@gmail.com"
    ```
+   `SMS_RELAY_URL`/`SMS_RELAY_SECRET`는 barun 앱에 설정된 것과 **정확히 같은 값**이어야 하며, 그
+   값은 barun을 배포한 쪽(다른 세션)에서 직접 받아와야 합니다 — 이 문서에는 실제 값이 적혀있지
+   않습니다.
 7. 배포: `fly deploy`
 8. 배포 후 `https://luii.fly.dev`를 폰 브라우저에서 열고 로그인 → "홈 화면에 추가"로 앱처럼 사용 가능
 

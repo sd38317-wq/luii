@@ -4,6 +4,7 @@ import {
   applyMessageTemplate,
   ensureAdCompliance,
 } from "./messageTemplates";
+import { isAsciiSafeSecret } from "./envGuard";
 
 // SMS 발송 — sms-relay(barun-sms-relay.fly.dev) 경유
 // 알리고 발송 서버 IP 등록은 relay 앱 하나에만 해두면 되므로(고정 egress IP 비용도 앱당이 아닌
@@ -24,10 +25,11 @@ export async function sendSms(to: string, text: string, subject?: string): Promi
   const relayUrl = process.env.SMS_RELAY_URL;
   const relaySecret = process.env.SMS_RELAY_SECRET;
 
-  if (!relayUrl || !relaySecret) {
+  if (!isAsciiSafeSecret(relayUrl) || !isAsciiSafeSecret(relaySecret)) {
     return {
       success: false,
-      error: "SMS_RELAY_URL, SMS_RELAY_SECRET 환경변수가 설정되지 않았습니다.",
+      error:
+        "SMS_RELAY_URL, SMS_RELAY_SECRET 환경변수가 비어있거나 올바르지 않습니다 (예시 문구가 그대로 들어있을 수 있어요, barun에 설정된 실제 값으로 다시 설정해주세요).",
     };
   }
 
