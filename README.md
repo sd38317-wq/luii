@@ -39,6 +39,7 @@ npm run dev
 | `CAFE_RULES` (선택) | 이용 수칙 안내 문구 (실내화/양말 착용, 보호자 동반 등) |
 | `ALIGO_USER_ID` / `ALIGO_API_KEY` | 알리고 마이페이지 > API 키 발급에서 확인 |
 | `ALIGO_SENDER_NUMBER` | 문자를 보낼 발신번호 |
+| `ANTHROPIC_API_KEY` | 예약창 캡처 사진 자동입력 기능에 필요 (console.anthropic.com > API Keys) |
 
 `CAFE_ADDRESS`/`CAFE_PARKING_INFO`/`CAFE_RULES`는 값을 채워두면 예약 안내 문자에 줄이 자동으로 추가되고, 비워두면 해당 줄이 빠집니다. 문구가 길어지면 SMS(단문, 90바이트 제한) 대신 LMS(장문)로 자동 전환되어 발송되며, LMS는 건당 비용이 조금 더 나갑니다 (앱이 바이트 수를 계산해서 자동으로 판단합니다).
 
@@ -82,7 +83,8 @@ npm run dev
      CAFE_RULES="이용 수칙 안내" \
      ALIGO_USER_ID="..." \
      ALIGO_API_KEY="..." \
-     ALIGO_SENDER_NUMBER="0212345678"
+     ALIGO_SENDER_NUMBER="0212345678" \
+     ANTHROPIC_API_KEY="sk-ant-..."
    ```
    (`CAFE_ADDRESS`/`CAFE_PARKING_INFO`/`CAFE_RULES`, 알리고 관련 값은 나중에 준비되면 `fly secrets set` 명령으로 언제든 추가/변경할 수 있습니다)
 7. 배포: `fly deploy`

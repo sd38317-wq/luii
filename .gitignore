@@ -48,6 +48,3 @@ next-env.d.ts
 /prisma/*.db-journal
 /prisma/*.db-wal
 /prisma/*.db-shm
-
-# tesseract.js가 실행 중 내려받는 OCR 언어 데이터 캐시
-*.traineddata

@@ -148,7 +148,7 @@ export default function ReservationManager() {
       const res = await fetch("/api/reservations/parse-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64 }),
+        body: JSON.stringify({ image: base64, mediaType: file.type }),
       });
 
       if (res.status === 401) {
