@@ -87,6 +87,7 @@ export default function ReservationManager({ title }: { title: string }) {
   const [loading, setLoading] = useState(true);
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [parseSummary, setParseSummary] = useState<string | null>(null);
 
   const fetchReservations = useCallback(async () => {
     const res = await fetch("/api/reservations", { cache: "no-store" });
@@ -136,46 +137,131 @@ export default function ReservationManager({ title }: { title: string }) {
     fetchReservations();
   }
 
+  async function parseImageFile(file: File) {
+    const base64 = await fileToBase64(file);
+    const res = await fetch("/api/reservations/parse-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: base64, mediaType: file.type }),
+    });
+    const data = await res.json();
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  function toIsoTimes(data: {
+    year: number;
+    month: number;
+    day: number;
+    hour: number;
+    minute: number;
+    endHour: number | null;
+    endMinute: number | null;
+  }) {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const hasEndTime = data.endHour != null && data.endMinute != null;
+    return {
+      reservationTime: `${data.year}-${pad(data.month)}-${pad(data.day)}T${pad(data.hour)}:${pad(data.minute)}`,
+      departureTime: hasEndTime
+        ? `${data.year}-${pad(data.month)}-${pad(data.day)}T${pad(data.endHour as number)}:${pad(data.endMinute as number)}`
+        : "",
+    };
+  }
+
+  // 사진 한 장 = 입력칸을 채워서 사장님이 확인 후 직접 "예약 등록"을 누르는 기존 방식 그대로 둔다.
+  async function handleSingleImage(file: File) {
+    const { status, ok, data } = await parseImageFile(file);
+    if (status === 401) {
+      router.push("/login");
+      return;
+    }
+    if (!ok) {
+      setParseError(data.error ?? "사진에서 정보를 읽지 못했습니다.");
+      return;
+    }
+    const times = toIsoTimes(data);
+    setForm({
+      customerName: data.customerName ?? "",
+      phone: data.phone ?? "",
+      reservationTime: times.reservationTime,
+      departureTime: times.departureTime,
+      partySize: data.partySize ? String(data.partySize) : "",
+      memo: "",
+    });
+  }
+
+  // 사진 여러 장 = 각각 읽어서 바로 예약 목록에 등록한다. 하나씩 확인 버튼을 누르는 게
+  // 여러 명 처리할 땐 번거로우니, 대신 결과 요약(성공/실패, 실패 사유)을 보여주고 문제가
+  // 있으면 목록에서 나중에 수정/삭제하면 된다. 중복(같은 번호+같은 시각) 예약은
+  // API가 자동으로 걸러준다.
+  async function handleMultipleImages(files: File[]) {
+    let successCount = 0;
+    const failures: string[] = [];
+
+    for (const file of files) {
+      try {
+        const { status, ok, data } = await parseImageFile(file);
+        if (status === 401) {
+          router.push("/login");
+          return;
+        }
+        if (!ok) {
+          failures.push(`${file.name}: ${data.error ?? "정보를 읽지 못했습니다"}`);
+          continue;
+        }
+
+        const times = toIsoTimes(data);
+        const createRes = await fetch("/api/reservations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customerName: data.customerName ?? "",
+            phone: data.phone ?? "",
+            reservationTime: times.reservationTime
+              ? new Date(times.reservationTime).toISOString()
+              : "",
+            departureTime: times.departureTime
+              ? new Date(times.departureTime).toISOString()
+              : null,
+            partySize: data.partySize ?? null,
+          }),
+        });
+        const createData = await createRes.json();
+
+        if (!createRes.ok) {
+          failures.push(`${file.name}(${data.customerName ?? "이름 없음"}): ${createData.error ?? "등록 실패"}`);
+          continue;
+        }
+
+        successCount++;
+      } catch {
+        failures.push(`${file.name}: 사진 처리 중 오류`);
+      }
+    }
+
+    if (successCount > 0) {
+      setParseSummary(`${successCount}건 등록 완료${failures.length > 0 ? `, ${failures.length}건 실패` : ""}`);
+    }
+    if (failures.length > 0) {
+      setParseError(failures.join("\n"));
+    }
+    fetchReservations();
+  }
+
   async function handleImageAttach(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
+    if (files.length === 0) return;
 
     setParsing(true);
     setParseError(null);
+    setParseSummary(null);
 
     try {
-      const base64 = await fileToBase64(file);
-      const res = await fetch("/api/reservations/parse-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64, mediaType: file.type }),
-      });
-
-      if (res.status === 401) {
-        router.push("/login");
-        return;
+      if (files.length === 1) {
+        await handleSingleImage(files[0]);
+      } else {
+        await handleMultipleImages(files);
       }
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setParseError(data.error ?? "사진에서 정보를 읽지 못했습니다.");
-        return;
-      }
-
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const hasEndTime = data.endHour != null && data.endMinute != null;
-      setForm({
-        customerName: data.customerName ?? "",
-        phone: data.phone ?? "",
-        reservationTime: `${data.year}-${pad(data.month)}-${pad(data.day)}T${pad(data.hour)}:${pad(data.minute)}`,
-        departureTime: hasEndTime
-          ? `${data.year}-${pad(data.month)}-${pad(data.day)}T${pad(data.endHour)}:${pad(data.endMinute)}`
-          : "",
-        partySize: data.partySize ? String(data.partySize) : "",
-        memo: "",
-      });
     } catch {
       setParseError("사진 처리 중 오류가 발생했습니다.");
     } finally {
@@ -237,16 +323,20 @@ export default function ReservationManager({ title }: { title: string }) {
           </h2>
 
           <label className="col-span-full flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-orange-300 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700 hover:bg-orange-100">
-            {parsing ? "사진에서 읽는 중..." : "📷 예약창 캡처로 자동 입력"}
+            {parsing ? "사진에서 읽는 중..." : "📷 예약창 캡처로 자동 입력 (여러 장 선택 가능)"}
             <input
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               disabled={parsing}
               onChange={handleImageAttach}
             />
           </label>
-          {parseError && <p className="col-span-full text-sm text-red-500">{parseError}</p>}
+          {parseSummary && <p className="col-span-full text-sm text-green-600">{parseSummary}</p>}
+          {parseError && (
+            <p className="col-span-full whitespace-pre-line text-sm text-red-500">{parseError}</p>
+          )}
 
           <input
             required

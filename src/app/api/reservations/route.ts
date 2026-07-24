@@ -47,6 +47,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 같은 번호로 같은 시각 예약이 이미 있으면 중복 등록으로 본다. 캡처 사진을 실수로
+  // 같은 걸 두 번 올리거나(사진 여러 장 일괄 등록 시), 수동으로 같은 예약을 중복 입력하는
+  // 걸 막기 위한 안전장치다. 취소된 예약은 중복 판정에서 제외한다.
+  const duplicate = await prisma.reservation.findFirst({
+    where: { phone: normalizedPhone, reservationTime, status: "PENDING" },
+  });
+  if (duplicate) {
+    return NextResponse.json(
+      {
+        error: `이미 같은 시간에 등록된 예약이 있어요 (${duplicate.customerName}, ${normalizedPhone}). 중복 등록을 막기 위해 저장하지 않았어요.`,
+      },
+      { status: 409 },
+    );
+  }
+
   const reservation = await prisma.reservation.create({
     data: {
       customerName,
